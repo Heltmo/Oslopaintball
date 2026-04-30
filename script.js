@@ -385,7 +385,8 @@ function collectBookingData(form) {
     preferred_date: formData.get("preferredDate")?.toString().trim() || "",
     preferred_time: formData.get("preferredTime")?.toString().trim() || "",
     extras: [...document.querySelectorAll('input[name="extrasVisual"]:checked')].map(input => input.value),
-    notes: formData.get("message")?.toString().trim() || ""
+    notes: formData.get("message")?.toString().trim() || "",
+    website: formData.get("website")?.toString().trim() || ""
   };
 }
 

@@ -333,11 +333,16 @@ function normalizeBookingInput(input) {
     preferred_date: String(input?.preferred_date || "").trim(),
     preferred_time: String(input?.preferred_time || "").trim(),
     extras,
-    notes: String(input?.notes || "").trim()
+    notes: String(input?.notes || "").trim(),
+    website: String(input?.website || "").trim()
   };
 }
 
 function validateBooking(booking) {
+  if (booking.website) {
+    return "Bookingforespørselen ble avvist.";
+  }
+
   if (
     !booking.name ||
     !booking.phone ||
