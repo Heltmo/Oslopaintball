@@ -25,6 +25,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupTimeSelection(timeChips, state);
   setupExtrasSelection(extrasInputs, state);
   setupBookingForm(bookingForm, state);
+  setupReserveLinks();
   syncBookingUi(state);
   setupHeroShooting();
 });
@@ -275,6 +276,16 @@ function setupBookingForm(form, state) {
         "error"
       );
     }
+  });
+}
+
+function setupReserveLinks() {
+  document.querySelectorAll('a[href="#booking-contact"]').forEach(link => {
+    link.addEventListener("click", () => {
+      window.setTimeout(() => {
+        document.querySelector("#fullName")?.focus({ preventScroll: true });
+      }, 350);
+    });
   });
 }
 
