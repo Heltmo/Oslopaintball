@@ -1,0 +1,15 @@
+.env
+.vscode/
+data/*.db
+data/*.db-*
+data/*.sqlite
+data/*.sqlite-*
+*.log
+*.bak
+*.backup*
+*.restored*
+*.tmp
+server-*.log
+.netlify/
+node_modules/
+dccf25bc-e1fb-40de-a8bc-74a751a33cf4.png

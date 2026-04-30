@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="no">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Oslo Paintball – Admin bookings</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="admin.css" />
+  </head>
+  <body>
+    <header class="admin-header">
+      <div>
+        <div class="admin-kicker">Admin oversikt</div>
+        <h1>INNKOMMENDE BOOKINGER</h1>
+        <p>V1-reservasjonssystem for å samle og følge opp bookingforespørsler uten e-postkaos.</p>
+      </div>
+      <div class="admin-header-actions">
+        <a href="/" class="admin-link">Til offentlig side</a>
+        <button type="button" class="admin-refresh">Oppdater nå</button>
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <section class="summary-grid">
+        <article class="summary-card">
+          <span>Totalt</span>
+          <strong data-summary="total">0</strong>
+        </article>
+        <article class="summary-card">
+          <span>Pending</span>
+          <strong data-summary="pending">0</strong>
+        </article>
+        <article class="summary-card">
+          <span>Confirmed</span>
+          <strong data-summary="confirmed">0</strong>
+        </article>
+        <article class="summary-card">
+          <span>Cancelled</span>
+          <strong data-summary="cancelled">0</strong>
+        </article>
+        <article class="summary-card">
+          <span>Completed</span>
+          <strong data-summary="completed">0</strong>
+        </article>
+      </section>
+
+      <section class="admin-panel">
+        <div class="admin-panel-head">
+          <div>
+            <div class="admin-kicker">Bookings</div>
+            <h2>ALLE FORESPØRSLER</h2>
+          </div>
+          <div class="admin-status-note">Nye bookinger vises øverst. Listen oppdateres automatisk hvert 15. sekund.</div>
+        </div>
+
+        <div class="admin-controls" aria-label="Filtrer bookinger">
+          <label class="admin-filter">
+            <span>Søk</span>
+            <input type="search" class="admin-search" placeholder="Navn, telefon, e-post eller pakke" />
+          </label>
+          <label class="admin-filter">
+            <span>Status</span>
+            <select class="admin-status-filter">
+              <option value="all">Alle statuser</option>
+              <option value="pending">Pending</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="cancelled">Cancelled</option>
+              <option value="completed">Completed</option>
+            </select>
+          </label>
+          <label class="admin-filter">
+            <span>Dato</span>
+            <input type="date" class="admin-date-filter" />
+          </label>
+          <button type="button" class="admin-clear-filters">Nullstill</button>
+        </div>
+
+        <div class="admin-message" hidden></div>
+
+        <div class="table-wrap">
+          <table class="bookings-table">
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Kunde</th>
+                <th>Pakke</th>
+                <th>Gruppe</th>
+                <th>Dato / tid</th>
+                <th>Tillegg</th>
+                <th>Status</th>
+                <th>Opprettet</th>
+                <th>Notater</th>
+                <th>Handling</th>
+              </tr>
+            </thead>
+            <tbody class="bookings-body">
+              <tr>
+                <td colspan="10" class="empty-state">Laster bookinger...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="admin-detail-panel" hidden>
+        <div class="admin-detail-head">
+          <div>
+            <div class="admin-kicker">Detaljer</div>
+            <h2 data-detail-title>Velg en booking</h2>
+          </div>
+          <button type="button" class="admin-detail-close" aria-label="Lukk detaljer">×</button>
+        </div>
+
+        <div class="admin-detail-grid">
+          <div>
+            <span>Kunde</span>
+            <strong data-detail-customer>–</strong>
+          </div>
+          <div>
+            <span>Kontakt</span>
+            <strong data-detail-contact>–</strong>
+          </div>
+          <div>
+            <span>Pakke</span>
+            <strong data-detail-package>–</strong>
+          </div>
+          <div>
+            <span>Dato / tid</span>
+            <strong data-detail-datetime>–</strong>
+          </div>
+          <div>
+            <span>Gruppe</span>
+            <strong data-detail-group>–</strong>
+          </div>
+          <div>
+            <span>Tillegg</span>
+            <strong data-detail-extras>–</strong>
+          </div>
+        </div>
+
+        <div class="admin-detail-message">
+          <span>Kundemelding</span>
+          <p data-detail-notes>–</p>
+        </div>
+
+        <div class="admin-detail-actions">
+          <a data-detail-call href="#">Ring</a>
+          <a data-detail-email href="#">Send e-post</a>
+          <button type="button" data-detail-status="confirmed">Bekreft</button>
+          <button type="button" data-detail-status="cancelled">Avlys</button>
+          <button type="button" data-detail-status="completed">Fullført</button>
+        </div>
+
+        <label class="admin-note-field">
+          <span>Internt admin-notat</span>
+          <textarea class="admin-note-input" maxlength="2000" placeholder="Skriv praktiske notater her. Dette vises ikke for kunden."></textarea>
+        </label>
+        <button type="button" class="admin-save-note">Lagre notat</button>
+      </aside>
+    </main>
+
+    <script src="admin.js"></script>
+  </body>
+</html>
