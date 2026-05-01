@@ -14,7 +14,8 @@ document.addEventListener("DOMContentLoaded", () => {
     selectedPackagePrice: null,
     preferredDate: "",
     preferredTime: "",
-    extras: []
+    extras: [],
+    bookingRules: getDefaultBookingRules()
   };
 
   setupRevealAnimations(revealItems);
@@ -27,12 +28,17 @@ document.addEventListener("DOMContentLoaded", () => {
   setupBookingForm(bookingForm, state);
   setupReserveLinks();
   syncBookingUi(state);
+  loadBookingRules(state).then(() => {
+    validateSelectedDate(preferredDateVisual, state);
+    syncBookingUi(state);
+  });
   setupHeroShooting();
 });
 
 const BOOKING_GROUP_MIN = 10;
 const BOOKING_GROUP_MAX = 100;
 const BOOKING_ALLOWED_TIMES = ["10:00", "12:00", "14:00", "16:00", "18:00"];
+const BOOKING_WEEKEND_DAYS = [0, 6];
 
 function setupRevealAnimations(items) {
   if (!items.length) {
@@ -71,6 +77,45 @@ function setupPreferredDate(input) {
   const mm = String(today.getMonth() + 1).padStart(2, "0");
   const dd = String(today.getDate()).padStart(2, "0");
   input.min = `${yyyy}-${mm}-${dd}`;
+}
+
+async function loadBookingRules(state) {
+  try {
+    const rules = await requestJson("api/booking-rules", {}, "Kunne ikke laste bookingregler.");
+    state.bookingRules = normalizeBookingRules(rules);
+  } catch {
+    state.bookingRules = getDefaultBookingRules();
+  }
+}
+
+function getDefaultBookingRules() {
+  return {
+    allowed_times: BOOKING_ALLOWED_TIMES,
+    weekend_days: BOOKING_WEEKEND_DAYS,
+    extra_open_dates: [],
+    slot_capacity: 2
+  };
+}
+
+function normalizeBookingRules(rules) {
+  const fallback = getDefaultBookingRules();
+  const allowedTimes = Array.isArray(rules?.allowed_times)
+    ? rules.allowed_times.map(item => String(item).trim()).filter(Boolean)
+    : fallback.allowed_times;
+  const weekendDays = Array.isArray(rules?.weekend_days)
+    ? rules.weekend_days.map(item => Number.parseInt(String(item), 10)).filter(day => Number.isInteger(day) && day >= 0 && day <= 6)
+    : fallback.weekend_days;
+  const extraOpenDates = Array.isArray(rules?.extra_open_dates)
+    ? rules.extra_open_dates.map(item => String(item).trim()).filter(isValidIsoDate)
+    : fallback.extra_open_dates;
+  const slotCapacity = Number.parseInt(String(rules?.slot_capacity || ""), 10);
+
+  return {
+    allowed_times: allowedTimes.length ? allowedTimes : fallback.allowed_times,
+    weekend_days: weekendDays.length ? weekendDays : fallback.weekend_days,
+    extra_open_dates: extraOpenDates,
+    slot_capacity: Number.isFinite(slotCapacity) && slotCapacity > 0 ? slotCapacity : fallback.slot_capacity
+  };
 }
 
 function setupStepper(buttons, state) {
@@ -181,9 +226,26 @@ function setupDateSelection(input, state) {
 
   input.addEventListener("change", () => {
     state.preferredDate = input.value;
-    clearValidationError("preferredDate");
+    validateSelectedDate(input, state);
     syncBookingUi(state);
   });
+}
+
+function validateSelectedDate(input, state) {
+  clearValidationError("preferredDate");
+
+  if (!input?.value) {
+    return;
+  }
+
+  if (isPastDate(input.value)) {
+    setValidationError("preferredDate", "Velg dagens dato eller en dato frem i tid.");
+    return;
+  }
+
+  if (!isBookingDateAllowed(input.value, state.bookingRules)) {
+    setValidationError("preferredDate", "Velg en lørdag, søndag eller en avtalt åpen hverdag.");
+  }
 }
 
 function setupTimeSelection(chips, state) {
@@ -232,7 +294,7 @@ function setupBookingForm(form, state) {
     event.preventDefault();
 
     const bookingData = collectBookingData(form);
-    const validationErrors = getBookingValidationErrors(bookingData);
+    const validationErrors = getBookingValidationErrors(bookingData, state.bookingRules);
 
     if (Object.keys(validationErrors).length > 0) {
       applyValidationErrors(validationErrors);
@@ -401,7 +463,7 @@ function collectBookingData(form) {
   };
 }
 
-function getBookingValidationErrors(data) {
+function getBookingValidationErrors(data, rules = getDefaultBookingRules()) {
   const errors = {};
 
   if (!data.name) {
@@ -432,7 +494,11 @@ function getBookingValidationErrors(data) {
     errors.preferredDate = "Velg dagens dato eller en dato frem i tid.";
   }
 
-  if (data.preferred_time && !BOOKING_ALLOWED_TIMES.includes(data.preferred_time)) {
+  if (data.preferred_date && !isPastDate(data.preferred_date) && !isBookingDateAllowed(data.preferred_date, rules)) {
+    errors.preferredDate = "Velg en lørdag, søndag eller en avtalt åpen hverdag.";
+  }
+
+  if (data.preferred_time && !rules.allowed_times.includes(data.preferred_time)) {
     errors.preferredTime = "Velg et gyldig tidspunkt.";
   }
 
@@ -491,14 +557,18 @@ function applyValidationErrors(errors) {
   clearAllValidationErrors();
 
   Object.entries(errors).forEach(([field, message]) => {
-    const container = getValidationContainer(field);
-    if (!container) {
-      return;
-    }
-
-    container.classList.add("has-error");
-    setFieldErrorMessage(container, message);
+    setValidationError(field, message);
   });
+}
+
+function setValidationError(field, message) {
+  const container = getValidationContainer(field);
+  if (!container) {
+    return;
+  }
+
+  container.classList.add("has-error");
+  setFieldErrorMessage(container, message);
 }
 
 function clearAllValidationErrors() {
@@ -722,11 +792,51 @@ function randomBetween(min, max) {
 }
 
 function isPastDate(value) {
-  const selected = new Date(`${value}T00:00:00`);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  if (!isValidIsoDate(value)) {
+    return true;
+  }
 
-  return Number.isNaN(selected.getTime()) || selected < today;
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+
+  return value < `${yyyy}-${mm}-${dd}`;
+}
+
+function isBookingDateAllowed(value, rules = getDefaultBookingRules()) {
+  const date = parseIsoDate(value);
+  if (!date) {
+    return false;
+  }
+
+  return rules.weekend_days.includes(date.getUTCDay()) || rules.extra_open_dates.includes(value);
+}
+
+function isValidIsoDate(value) {
+  return Boolean(parseIsoDate(value));
+}
+
+function parseIsoDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+  if (!match) {
+    return null;
+  }
+
+  const year = Number.parseInt(match[1], 10);
+  const month = Number.parseInt(match[2], 10);
+  const day = Number.parseInt(match[3], 10);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
 }
 
 const SPLAT_PATHS = [

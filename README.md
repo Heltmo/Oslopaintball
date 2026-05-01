@@ -82,6 +82,8 @@ SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=et-sterkt-passord
+BOOKING_SLOT_CAPACITY=2
+BOOKING_EXTRA_OPEN_DATES=
 ```
 
 Når `SUPABASE_URL` og `SUPABASE_SERVICE_ROLE_KEY` finnes, bruker `server.js` Supabase automatisk. Uten disse bruker den `data/bookings.db` lokalt.
@@ -108,6 +110,8 @@ ADMIN_PASSWORD=et-sterkt-demo-passord
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 DEMO_MODE=1
+BOOKING_SLOT_CAPACITY=2
+BOOKING_EXTRA_OPEN_DATES=
 ```
 
 Etter deploy:
@@ -145,6 +149,22 @@ Gyldige statuser:
 - `cancelled`
 - `completed`
 
+## Bookingregler
+
+- Lørdag og søndag er åpne bookingdager som standard.
+- Faste tider: `10:00`, `12:00`, `14:00`, `16:00`, `18:00`.
+- Maks kapasitet per dato/tid er `2` bekreftede bookinger, siden anlegget har to baner.
+- Ekstra åpne hverdager kan legges inn med miljøvariabelen `BOOKING_EXTRA_OPEN_DATES`, kommaseparert i formatet `YYYY-MM-DD`.
+
+Eksempel:
+
+```env
+BOOKING_SLOT_CAPACITY=2
+BOOKING_EXTRA_OPEN_DATES=2026-05-08,2026-05-15
+```
+
+Etter endring i Netlify environment variables må siden redeployes.
+
 ## Adminflyt
 
 1. Ny booking kommer inn som `pending`.
@@ -152,7 +172,7 @@ Gyldige statuser:
 3. Admin kan lagre interne notater i `admin_notes`.
 4. Admin bekrefter, avlyser eller markerer bookingen som fullført.
 
-Når en booking settes til `confirmed`, blokkerer serveren andre bekreftede bookinger på samme dato og tidspunkt. Nye bookingforespørsler blir også avvist hvis tidspunktet allerede er bekreftet.
+Når en booking settes til `confirmed`, teller serveren bekreftede bookinger på samme dato og tidspunkt. Nye bookingforespørsler og nye bekreftelser blir avvist når tidspunktet allerede har to bekreftede bookinger.
 
 ## Viktig
 

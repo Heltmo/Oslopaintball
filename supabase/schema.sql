@@ -14,7 +14,9 @@ create table if not exists public.bookings (
   created_at timestamptz not null default now()
 );
 
-create unique index if not exists bookings_confirmed_slot_unique
+drop index if exists public.bookings_confirmed_slot_unique;
+
+create index if not exists bookings_confirmed_slot_idx
   on public.bookings (preferred_date, preferred_time)
   where status = 'confirmed';
 

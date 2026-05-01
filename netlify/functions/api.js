@@ -10,6 +10,9 @@ const VALID_STATUSES = ["pending", "confirmed", "cancelled", "completed"];
 const BOOKING_GROUP_MIN = 10;
 const BOOKING_GROUP_MAX = 100;
 const BOOKING_ALLOWED_TIMES = ["10:00", "12:00", "14:00", "16:00", "18:00"];
+const BOOKING_WEEKEND_DAYS = [0, 6];
+const BOOKING_SLOT_CAPACITY = parsePositiveInteger(process.env.BOOKING_SLOT_CAPACITY, 2);
+const BOOKING_EXTRA_OPEN_DATES = parseDateList(process.env.BOOKING_EXTRA_OPEN_DATES || "");
 const PACKAGE_RULES = {
   "Over 18 år": { min: 10, max: 24 },
   "Under 18 år": { min: 10, max: 24 },
@@ -23,6 +26,10 @@ exports.handler = async event => {
   try {
     if (method === "OPTIONS") {
       return json(204, {});
+    }
+
+    if (method === "GET" && apiPath === "/api/booking-rules") {
+      return json(200, getBookingRulesPayload());
     }
 
     if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -55,9 +62,9 @@ exports.handler = async event => {
         return json(400, { error: validationError });
       }
 
-      if (await hasConfirmedSlot(booking.preferred_date, booking.preferred_time)) {
+      if (await isConfirmedSlotFull(booking.preferred_date, booking.preferred_time)) {
         return json(409, {
-          error: "Dette tidspunktet er allerede bekreftet. Velg et annet tidspunkt, eller kontakt oss direkte."
+          error: "Dette tidspunktet er fullt. Velg et annet tidspunkt, eller kontakt oss direkte."
         });
       }
 
@@ -87,10 +94,10 @@ exports.handler = async event => {
 
       if (
         nextStatus === "confirmed" &&
-        (await hasConfirmedSlot(existingBooking.preferred_date, existingBooking.preferred_time, bookingId))
+        (await isConfirmedSlotFull(existingBooking.preferred_date, existingBooking.preferred_time, bookingId))
       ) {
         return json(409, {
-          error: "En annen booking er allerede bekreftet på samme dato og tidspunkt."
+          error: "Dette tidspunktet har allerede to bekreftede bookinger."
         });
       }
 
@@ -191,17 +198,17 @@ async function updateBooking(bookingId, patch) {
   });
 }
 
-async function hasConfirmedSlot(preferredDate, preferredTime, excludedBookingId = 0) {
+async function isConfirmedSlotFull(preferredDate, preferredTime, excludedBookingId = 0) {
   const params = new URLSearchParams({
     select: "id",
     preferred_date: `eq.${preferredDate}`,
     preferred_time: `eq.${preferredTime}`,
     status: "eq.confirmed",
     id: `neq.${excludedBookingId}`,
-    limit: "1"
+    limit: String(BOOKING_SLOT_CAPACITY)
   });
   const rows = await supabaseRequest(`/rest/v1/bookings?${params.toString()}`);
-  return rows.length > 0;
+  return rows.length >= BOOKING_SLOT_CAPACITY;
 }
 
 async function getBookingsPayload() {
@@ -217,6 +224,16 @@ async function getBookingsPayload() {
       cancelled: bookings.filter(booking => booking.status === "cancelled").length,
       completed: bookings.filter(booking => booking.status === "completed").length
     }
+  };
+}
+
+function getBookingRulesPayload() {
+  return {
+    allowed_times: BOOKING_ALLOWED_TIMES,
+    weekend_days: BOOKING_WEEKEND_DAYS,
+    extra_open_dates: [...BOOKING_EXTRA_OPEN_DATES],
+    slot_capacity: BOOKING_SLOT_CAPACITY,
+    timezone: "Europe/Oslo"
   };
 }
 
@@ -373,6 +390,10 @@ function validateBooking(booking) {
 
   if (isPastDate(booking.preferred_date)) {
     return "Velg dagens dato eller en dato frem i tid.";
+  }
+
+  if (!isBookingDateAllowed(booking.preferred_date)) {
+    return "Velg en lørdag, søndag eller en avtalt åpen hverdag.";
   }
 
   if (!BOOKING_ALLOWED_TIMES.includes(booking.preferred_time)) {
@@ -550,15 +571,69 @@ function normalizeSupabaseUrl(value) {
 }
 
 function isPastDate(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+  if (!isValidIsoDate(value)) {
     return true;
   }
 
-  const selected = new Date(`${value}T00:00:00`);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  return value < getTodayIsoOslo();
+}
 
-  return Number.isNaN(selected.getTime()) || selected < today;
+function isBookingDateAllowed(value) {
+  const date = parseIsoDate(value);
+  if (!date) {
+    return false;
+  }
+
+  return BOOKING_WEEKEND_DAYS.includes(date.getUTCDay()) || BOOKING_EXTRA_OPEN_DATES.has(value);
+}
+
+function isValidIsoDate(value) {
+  return Boolean(parseIsoDate(value));
+}
+
+function parseIsoDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+  if (!match) {
+    return null;
+  }
+
+  const year = Number.parseInt(match[1], 10);
+  const month = Number.parseInt(match[2], 10);
+  const day = Number.parseInt(match[3], 10);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function getTodayIsoOslo() {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Oslo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
+}
+
+function parsePositiveInteger(value, fallback) {
+  const parsed = Number.parseInt(String(value || "").trim(), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseDateList(value) {
+  return new Set(
+    String(value || "")
+      .split(",")
+      .map(item => item.trim())
+      .filter(isValidIsoDate)
+  );
 }
 
 function addDaysIso(days) {

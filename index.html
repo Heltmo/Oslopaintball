@@ -319,14 +319,15 @@
           </div>
 
           <div class="booking-step booking-schedule-grid">
-            <div class="schedule-card">
+            <div class="schedule-card" data-validation-group="preferredDate">
               <div class="booking-step-label">3. Velg dato</div>
               <div class="form-field form-field-compact">
                 <label for="preferredDateVisual">Dato</label>
                 <input type="date" id="preferredDateVisual" name="preferredDateVisual" />
+                <span class="field-hint">Lørdager, søndager og avtalte hverdager.</span>
               </div>
             </div>
-            <div class="schedule-card">
+            <div class="schedule-card" data-validation-group="preferredTime">
               <div class="booking-step-label">4. Velg tidspunkt</div>
               <div class="time-chip-grid" role="group" aria-label="Velg tidspunkt">
                 <button type="button" class="time-chip" data-time-chip="10:00">10:00</button>

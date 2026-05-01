@@ -1429,6 +1429,14 @@ img {
   font: inherit;
 }
 
+.field-hint {
+  display: block;
+  margin-top: 8px;
+  color: var(--surface-muted);
+  font-size: 13px;
+  line-height: 1.35;
+}
+
 .time-chip-grid {
   display: flex;
   flex-wrap: wrap;

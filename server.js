@@ -21,6 +21,9 @@ const VALID_STATUSES = ["pending", "confirmed", "cancelled", "completed"];
 const BOOKING_GROUP_MIN = 10;
 const BOOKING_GROUP_MAX = 100;
 const BOOKING_ALLOWED_TIMES = ["10:00", "12:00", "14:00", "16:00", "18:00"];
+const BOOKING_WEEKEND_DAYS = [0, 6];
+const BOOKING_SLOT_CAPACITY = parsePositiveInteger(process.env.BOOKING_SLOT_CAPACITY, 2);
+const BOOKING_EXTRA_OPEN_DATES = parseDateList(process.env.BOOKING_EXTRA_OPEN_DATES || "");
 const PACKAGE_RULES = {
   "Over 18 år": { min: 10, max: 24 },
   "Under 18 år": { min: 10, max: 24 },
@@ -70,6 +73,10 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
+    if (req.method === "GET" && requestUrl.pathname === "/api/booking-rules") {
+      return sendJson(res, 200, getBookingRulesPayload());
+    }
+
     if (req.method === "GET" && requestUrl.pathname === "/api/bookings") {
       return sendJson(res, 200, await getBookingsPayload());
     }
@@ -83,9 +90,9 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 400, { error: validationError });
       }
 
-      if (await hasConfirmedSlot(booking.preferred_date, booking.preferred_time)) {
+      if (await isConfirmedSlotFull(booking.preferred_date, booking.preferred_time)) {
         return sendJson(res, 409, {
-          error: "Dette tidspunktet er allerede bekreftet. Velg et annet tidspunkt, eller kontakt oss direkte."
+          error: "Dette tidspunktet er fullt. Velg et annet tidspunkt, eller kontakt oss direkte."
         });
       }
 
@@ -119,10 +126,10 @@ const server = http.createServer(async (req, res) => {
 
       if (
         nextStatus === "confirmed" &&
-        (await hasConfirmedSlot(existingBooking.preferred_date, existingBooking.preferred_time, bookingId))
+        (await isConfirmedSlotFull(existingBooking.preferred_date, existingBooking.preferred_time, bookingId))
       ) {
         return sendJson(res, 409, {
-          error: "En annen booking er allerede bekreftet på samme dato og tidspunkt."
+          error: "Dette tidspunktet har allerede to bekreftede bookinger."
         });
       }
 
@@ -347,7 +354,7 @@ async function selectBookingById(bookingId) {
     .get(bookingId);
 }
 
-async function hasConfirmedSlot(preferredDate, preferredTime, excludedBookingId = 0) {
+async function isConfirmedSlotFull(preferredDate, preferredTime, excludedBookingId = 0) {
   if (USE_SUPABASE) {
     const params = new URLSearchParams({
       select: "id",
@@ -355,25 +362,24 @@ async function hasConfirmedSlot(preferredDate, preferredTime, excludedBookingId 
       preferred_time: `eq.${preferredTime}`,
       status: "eq.confirmed",
       id: `neq.${excludedBookingId}`,
-      limit: "1"
+      limit: String(BOOKING_SLOT_CAPACITY)
     });
     const rows = await supabaseRequest(`/rest/v1/bookings?${params.toString()}`);
-    return rows.length > 0;
+    return rows.length >= BOOKING_SLOT_CAPACITY;
   }
 
   const row = db
     .prepare(`
-      SELECT id
+      SELECT COUNT(*) AS count
       FROM bookings
       WHERE preferred_date = ?
         AND preferred_time = ?
         AND status = 'confirmed'
         AND id != ?
-      LIMIT 1
     `)
     .get(preferredDate, preferredTime, excludedBookingId);
 
-  return Boolean(row);
+  return Number(row?.count || 0) >= BOOKING_SLOT_CAPACITY;
 }
 
 async function seedDemoBookings() {
@@ -522,6 +528,16 @@ async function getBookingsPayload() {
   return { bookings, summary };
 }
 
+function getBookingRulesPayload() {
+  return {
+    allowed_times: BOOKING_ALLOWED_TIMES,
+    weekend_days: BOOKING_WEEKEND_DAYS,
+    extra_open_dates: [...BOOKING_EXTRA_OPEN_DATES],
+    slot_capacity: BOOKING_SLOT_CAPACITY,
+    timezone: "Europe/Oslo"
+  };
+}
+
 function serializeBooking(row) {
   return {
     ...row,
@@ -587,6 +603,20 @@ async function supabaseRequest(pathname, init = {}) {
 
 function normalizeSupabaseUrl(value) {
   return value.replace(/\/+$/, "");
+}
+
+function parsePositiveInteger(value, fallback) {
+  const parsed = Number.parseInt(String(value || "").trim(), 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function parseDateList(value) {
+  return new Set(
+    String(value || "")
+      .split(",")
+      .map(item => item.trim())
+      .filter(isValidIsoDate)
+  );
 }
 
 function loadLocalEnv(filePath) {
@@ -666,6 +696,10 @@ function validateBooking(booking) {
 
   if (isPastDate(booking.preferred_date)) {
     return "Velg dagens dato eller en dato frem i tid.";
+  }
+
+  if (!isBookingDateAllowed(booking.preferred_date)) {
+    return "Velg en lørdag, søndag eller en avtalt åpen hverdag.";
   }
 
   if (!BOOKING_ALLOWED_TIMES.includes(booking.preferred_time)) {
@@ -759,15 +793,55 @@ function requestAdminAuth(res) {
 }
 
 function isPastDate(value) {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+  if (!isValidIsoDate(value)) {
     return true;
   }
 
-  const selected = new Date(`${value}T00:00:00`);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  return value < getTodayIsoOslo();
+}
 
-  return Number.isNaN(selected.getTime()) || selected < today;
+function isBookingDateAllowed(value) {
+  const date = parseIsoDate(value);
+  if (!date) {
+    return false;
+  }
+
+  return BOOKING_WEEKEND_DAYS.includes(date.getUTCDay()) || BOOKING_EXTRA_OPEN_DATES.has(value);
+}
+
+function isValidIsoDate(value) {
+  return Boolean(parseIsoDate(value));
+}
+
+function parseIsoDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+  if (!match) {
+    return null;
+  }
+
+  const year = Number.parseInt(match[1], 10);
+  const month = Number.parseInt(match[2], 10);
+  const day = Number.parseInt(match[3], 10);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (
+    date.getUTCFullYear() !== year ||
+    date.getUTCMonth() !== month - 1 ||
+    date.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return date;
+}
+
+function getTodayIsoOslo() {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Oslo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
 }
 
 function serveStatic(requestPath, res) {
