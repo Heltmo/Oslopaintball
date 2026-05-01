@@ -1,8 +1,8 @@
 /api/* /.netlify/functions/api/:splat 200
 /booking /booking.html 200
-/admin /.netlify/functions/admin 200
-/admin/ /.netlify/functions/admin 200
-/admin.html /.netlify/functions/admin 200
+/admin /.netlify/functions/admin 200!
+/admin/ /.netlify/functions/admin 200!
+/admin.html /.netlify/functions/admin 200!
 /data/* /404.html 404
 /netlify/* /404.html 404
 /server.js /404.html 404
