@@ -698,10 +698,6 @@ function validateBooking(booking) {
     return "Velg dagens dato eller en dato frem i tid.";
   }
 
-  if (!isBookingDateAllowed(booking.preferred_date)) {
-    return "Velg en lørdag, søndag eller en avtalt åpen hverdag.";
-  }
-
   if (!BOOKING_ALLOWED_TIMES.includes(booking.preferred_time)) {
     return "Ugyldig tidspunkt.";
   }
@@ -798,15 +794,6 @@ function isPastDate(value) {
   }
 
   return value < getTodayIsoOslo();
-}
-
-function isBookingDateAllowed(value) {
-  const date = parseIsoDate(value);
-  if (!date) {
-    return false;
-  }
-
-  return BOOKING_WEEKEND_DAYS.includes(date.getUTCDay()) || BOOKING_EXTRA_OPEN_DATES.has(value);
 }
 
 function isValidIsoDate(value) {

@@ -151,10 +151,11 @@ Gyldige statuser:
 
 ## Bookingregler
 
-- Lørdag og søndag er åpne bookingdager som standard.
+- Lørdag og søndag vises som ordinære bookingdager.
 - Faste tider: `10:00`, `12:00`, `14:00`, `16:00`, `18:00`.
 - Maks kapasitet per dato/tid er `2` bekreftede bookinger, siden anlegget har to baner.
-- Ekstra åpne hverdager kan legges inn med miljøvariabelen `BOOKING_EXTRA_OPEN_DATES`, kommaseparert i formatet `YYYY-MM-DD`.
+- Hverdager vises grått som `etter avtale`, men bookingforespørselen kan fortsatt sendes inn og må bekreftes av admin.
+- Ekstra åpne hverdager kan fremheves med miljøvariabelen `BOOKING_EXTRA_OPEN_DATES`, kommaseparert i formatet `YYYY-MM-DD`.
 
 Eksempel:
 

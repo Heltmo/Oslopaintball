@@ -23,6 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
   setupStepper(stepperButtons, state);
   setupPackageCards(packageCards, packageModal, state);
   setupDateSelection(preferredDateVisual, state);
+  const bookingCalendar = setupBookingCalendar(preferredDateVisual, state);
   setupTimeSelection(timeChips, state);
   setupExtrasSelection(extrasInputs, state);
   setupBookingForm(bookingForm, state);
@@ -30,6 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
   syncBookingUi(state);
   loadBookingRules(state).then(() => {
     validateSelectedDate(preferredDateVisual, state);
+    bookingCalendar?.render();
     syncBookingUi(state);
   });
   setupHeroShooting();
@@ -235,17 +237,164 @@ function validateSelectedDate(input, state) {
   clearValidationError("preferredDate");
 
   if (!input?.value) {
+    updateDateStatus(input, "");
     return;
   }
 
   if (isPastDate(input.value)) {
+    updateDateStatus(input, "");
     setValidationError("preferredDate", "Velg dagens dato eller en dato frem i tid.");
     return;
   }
 
-  if (!isBookingDateAllowed(input.value, state.bookingRules)) {
-    setValidationError("preferredDate", "Velg en lørdag, søndag eller en avtalt åpen hverdag.");
+  updateDateStatus(input, getDateBookingType(input.value, state.bookingRules));
+}
+
+function updateDateStatus(input, type) {
+  const target = input?.closest(".schedule-card")?.querySelector("[data-date-status]");
+  if (!target) {
+    return;
   }
+
+  if (type === "standard") {
+    target.textContent = "Helg: ordinær bookingdag.";
+    target.className = "date-status is-standard";
+    return;
+  }
+
+  if (type === "extra") {
+    target.textContent = "Hverdag åpnet etter avtale.";
+    target.className = "date-status is-extra";
+    return;
+  }
+
+  if (type === "agreement") {
+    target.textContent = "Hverdag: forespørsel sendes inn og må bekreftes.";
+    target.className = "date-status is-agreement";
+    return;
+  }
+
+  target.textContent = "";
+  target.className = "date-status";
+}
+
+function setupBookingCalendar(input, state) {
+  if (!input) {
+    return null;
+  }
+
+  const todayIso = getTodayIso();
+  let visibleMonth = getCalendarMonth(input.value || todayIso);
+  const calendar = document.createElement("div");
+  calendar.className = "booking-calendar";
+  calendar.setAttribute("aria-label", "Velg bookingdato");
+  input.classList.add("date-input-fallback");
+  input.insertAdjacentElement("afterend", calendar);
+
+  const render = () => {
+    const selectedIso = input.value || "";
+    const monthLabel = new Intl.DateTimeFormat("no-NO", {
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC"
+    }).format(visibleMonth);
+    const previousMonth = new Date(Date.UTC(visibleMonth.getUTCFullYear(), visibleMonth.getUTCMonth() - 1, 1));
+    const nextMonth = new Date(Date.UTC(visibleMonth.getUTCFullYear(), visibleMonth.getUTCMonth() + 1, 1));
+    const firstGridDate = getCalendarGridStart(visibleMonth);
+    const dayButtons = [];
+
+    for (let index = 0; index < 42; index++) {
+      const date = new Date(firstGridDate);
+      date.setUTCDate(firstGridDate.getUTCDate() + index);
+      const iso = formatIsoDate(date);
+      const isPast = iso < todayIso;
+      const isCurrentMonth = date.getUTCMonth() === visibleMonth.getUTCMonth();
+      const bookingType = getDateBookingType(iso, state.bookingRules);
+      const classes = [
+        "calendar-day",
+        isCurrentMonth ? "" : "is-outside-month",
+        isPast ? "is-disabled" : "",
+        selectedIso === iso ? "is-selected" : "",
+        bookingType === "standard" ? "is-standard" : "",
+        bookingType === "extra" ? "is-extra" : "",
+        bookingType === "agreement" ? "is-agreement" : ""
+      ]
+        .filter(Boolean)
+        .join(" ");
+      const visualLabel = bookingType === "standard"
+        ? "Helg"
+        : bookingType === "extra"
+          ? "Åpen"
+          : "Avtale";
+      const ariaLabel = bookingType === "standard"
+        ? "Ordinær helgedag"
+        : bookingType === "extra"
+          ? "Åpen hverdag"
+          : "Etter avtale";
+
+      dayButtons.push(`
+        <button
+          type="button"
+          class="${classes}"
+          data-calendar-date="${iso}"
+          ${isPast ? "disabled" : ""}
+          aria-label="${formatDisplayDate(date)} ${ariaLabel}"
+        >
+          <span>${date.getUTCDate()}</span>
+          <small>${visualLabel}</small>
+        </button>
+      `);
+    }
+
+    calendar.innerHTML = `
+      <div class="calendar-head">
+        <button type="button" class="calendar-nav" data-calendar-month="${formatIsoDate(previousMonth)}" aria-label="Forrige måned">‹</button>
+        <strong>${escapeHtml(capitalize(monthLabel))}</strong>
+        <button type="button" class="calendar-nav" data-calendar-month="${formatIsoDate(nextMonth)}" aria-label="Neste måned">›</button>
+      </div>
+      <div class="calendar-weekdays" aria-hidden="true">
+        <span>Man</span><span>Tir</span><span>Ons</span><span>Tor</span><span>Fre</span><span>Lør</span><span>Søn</span>
+      </div>
+      <div class="calendar-grid">
+        ${dayButtons.join("")}
+      </div>
+      <div class="calendar-legend" aria-hidden="true">
+        <span><i class="legend-standard"></i>Helg</span>
+        <span><i class="legend-agreement"></i>Etter avtale</span>
+      </div>
+    `;
+  };
+
+  calendar.addEventListener("click", event => {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return;
+    }
+
+    const monthButton = target.closest("[data-calendar-month]");
+    if (monthButton instanceof HTMLElement) {
+      visibleMonth = getCalendarMonth(monthButton.dataset.calendarMonth || todayIso);
+      render();
+      return;
+    }
+
+    const dateButton = target.closest("[data-calendar-date]");
+    if (dateButton instanceof HTMLButtonElement && !dateButton.disabled) {
+      input.value = dateButton.dataset.calendarDate || "";
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+      render();
+    }
+  });
+
+  input.addEventListener("change", () => {
+    if (input.value) {
+      visibleMonth = getCalendarMonth(input.value);
+    }
+    render();
+  });
+
+  render();
+  return { render };
 }
 
 function setupTimeSelection(chips, state) {
@@ -427,7 +576,7 @@ function updateHiddenFormValues(state) {
 function updateReservationSummary(state) {
   setText("[data-summary-package]", state.selectedPackage || "Ikke valgt");
   setText("[data-summary-group]", String(state.groupSize));
-  setText("[data-summary-date]", state.preferredDate || "Ikke valgt");
+  setText("[data-summary-date]", getDateSummaryLabel(state.preferredDate, state.bookingRules));
   setText("[data-summary-time]", state.preferredTime || "Ikke valgt");
   setText("[data-summary-extras]", state.extras.length ? state.extras.join(", ") : "Ingen tillegg valgt");
 
@@ -494,10 +643,6 @@ function getBookingValidationErrors(data, rules = getDefaultBookingRules()) {
     errors.preferredDate = "Velg dagens dato eller en dato frem i tid.";
   }
 
-  if (data.preferred_date && !isPastDate(data.preferred_date) && !isBookingDateAllowed(data.preferred_date, rules)) {
-    errors.preferredDate = "Velg en lørdag, søndag eller en avtalt åpen hverdag.";
-  }
-
   if (data.preferred_time && !rules.allowed_times.includes(data.preferred_time)) {
     errors.preferredTime = "Velg et gyldig tidspunkt.";
   }
@@ -535,6 +680,7 @@ function resetVisualState(state) {
   const dateInput = document.querySelector("#preferredDateVisual");
   if (dateInput) {
     dateInput.value = "";
+    dateInput.dispatchEvent(new Event("change", { bubbles: true }));
   }
 
   document.querySelectorAll("[data-time-chip]").forEach(chip => chip.classList.remove("is-selected"));
@@ -796,21 +942,45 @@ function isPastDate(value) {
     return true;
   }
 
-  const today = new Date();
-  const yyyy = today.getFullYear();
-  const mm = String(today.getMonth() + 1).padStart(2, "0");
-  const dd = String(today.getDate()).padStart(2, "0");
-
-  return value < `${yyyy}-${mm}-${dd}`;
+  return value < getTodayIso();
 }
 
-function isBookingDateAllowed(value, rules = getDefaultBookingRules()) {
+function getDateBookingType(value, rules = getDefaultBookingRules()) {
   const date = parseIsoDate(value);
   if (!date) {
-    return false;
+    return "";
   }
 
-  return rules.weekend_days.includes(date.getUTCDay()) || rules.extra_open_dates.includes(value);
+  if (rules.weekend_days.includes(date.getUTCDay())) {
+    return "standard";
+  }
+
+  if (rules.extra_open_dates.includes(value)) {
+    return "extra";
+  }
+
+  return "agreement";
+}
+
+function getDateSummaryLabel(value, rules = getDefaultBookingRules()) {
+  if (!value) {
+    return "Ikke valgt";
+  }
+
+  const type = getDateBookingType(value, rules);
+  if (type === "standard") {
+    return `${value} · helg`;
+  }
+
+  if (type === "extra") {
+    return `${value} · åpen hverdag`;
+  }
+
+  if (type === "agreement") {
+    return `${value} · etter avtale`;
+  }
+
+  return value;
 }
 
 function isValidIsoDate(value) {
@@ -837,6 +1007,49 @@ function parseIsoDate(value) {
   }
 
   return date;
+}
+
+function getTodayIso() {
+  const today = new Date();
+  const yyyy = today.getFullYear();
+  const mm = String(today.getMonth() + 1).padStart(2, "0");
+  const dd = String(today.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function getCalendarMonth(value) {
+  const date = parseIsoDate(value) || parseIsoDate(getTodayIso());
+  return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
+}
+
+function getCalendarGridStart(monthDate) {
+  const first = new Date(Date.UTC(monthDate.getUTCFullYear(), monthDate.getUTCMonth(), 1));
+  const mondayBasedDay = (first.getUTCDay() + 6) % 7;
+  first.setUTCDate(first.getUTCDate() - mondayBasedDay);
+  return first;
+}
+
+function formatIsoDate(date) {
+  return [
+    date.getUTCFullYear(),
+    String(date.getUTCMonth() + 1).padStart(2, "0"),
+    String(date.getUTCDate()).padStart(2, "0")
+  ].join("-");
+}
+
+function formatDisplayDate(date) {
+  return new Intl.DateTimeFormat("no-NO", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC"
+  }).format(date);
+}
+
+function capitalize(value) {
+  const text = String(value || "");
+  return text ? text.charAt(0).toUpperCase() + text.slice(1) : "";
 }
 
 const SPLAT_PATHS = [
