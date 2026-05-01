@@ -280,6 +280,12 @@ body {
   border: 1px solid rgba(106, 180, 74, 0.24);
 }
 
+.admin-message.preview {
+  background: rgba(245, 197, 24, 0.13);
+  color: #f7d56e;
+  border: 1px solid rgba(245, 197, 24, 0.26);
+}
+
 .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--line-soft);
