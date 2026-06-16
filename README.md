@@ -1,41 +1,30 @@
 # Oslo Paintball V1
 
-Lettvekts reservasjonsløsning for Oslo Paintball.
+Lettvekts bookingløsning for Oslo Paintball med offentlig nettside, bookingforespørsler, Supabase-lagring, passordbeskyttet adminoversikt og valgfri e-post/SMS-varsling.
 
-## Innhold
+## Hva løsningen gjør
 
-- Offentlig side med:
-  - hero
-  - pakker/priser
-  - praktisk info
-  - FAQ
-  - bookingflyt
-- Backend for bookinglagring i Supabase eller lokal SQLite fallback
-- Enkel admin-oversikt for innkommende bookinger
+- Forside med aktiviteter, anmeldelser, FAQ og galleri
+- Bookingflyt for pakke, gruppestørrelse, dato, tid, tillegg og kontaktinfo
+- Server-side validering av bookingdata
+- Supabase i produksjon og lokal SQLite fallback for utvikling
+- Adminoversikt med status, filtrering og interne notater
+- E-post via Resend når miljøvariabler er satt
+- SMS via Twilio når miljøvariabler er satt
 
-## Filer
+## Viktig scope
 
-```text
-oslopaintball/
-├── index.html
-├── styles.css
-├── script.js
-├── server.js
-├── admin.html
-├── admin.css
-├── admin.js
-├── package.json
-├── netlify.toml
-├── netlify/
-│   └── functions/
-│       ├── admin.js
-│       └── api.js
-├── supabase/
-│   └── schema.sql
-└── images/
-```
+Dette er et reservasjons-/forespørselssystem, ikke full checkout.
 
-## Kjør lokalt
+- Ingen online betaling
+- Betaling skjer på stedet
+- Slot-kapasitet gjelder bekreftede bookinger per dato/tid
+- Hverdager kan sendes inn som forespørsel etter avtale
+- E-post/SMS sendes best effort etter at booking er lagret. En varslingsfeil skal ikke slette eller blokkere en lagret booking.
+
+## Lokal oppstart
+
+Krever Node 24 eller nyere, fordi lokal SQLite fallback bruker `node:sqlite`.
 
 ```bash
 npm start
@@ -43,76 +32,98 @@ npm start
 
 Serveren starter på `http://localhost:3000`.
 
-Admin ligger på `http://localhost:3000/admin`.
+- Forside: `http://localhost:3000/`
+- Booking: `http://localhost:3000/booking`
+- Admin: `http://localhost:3000/admin`
 
-Standard lokal admin-login:
+Standard lokal admin-login når Supabase ikke er konfigurert:
 
 - Brukernavn: `admin`
 - Passord: `paintball2026`
 
 Sett `ADMIN_USERNAME` og `ADMIN_PASSWORD` i miljøet før produksjon. Produksjon feiler lukket hvis disse mangler.
 
-## Demo for kundevisning
+## Kvalitetssjekk
 
-Når Supabase ikke er konfigurert, kjører prosjektet lokalt med SQLite og demo-modus aktivert.
+```bash
+npm run check
+```
 
-For å vise arbeidsflyten:
+Denne sjekker JavaScript-syntaksen i lokal server, frontend, admin og Netlify Functions.
 
-1. Start serveren med `npm start`.
-2. Åpne `http://localhost:3000/admin`.
-3. Logg inn med lokal admin-login.
-4. Trykk `Last demo-data`.
-5. Åpne en booking, endre status og lagre internt notat.
+## Supabase-oppsett
 
-Demo-knappen sletter bare tidligere demo-bookinger med e-post på `@demo.oslopaintball.no` og legger inn nye realistiske testbookinger. Den rører ikke ekte bookinger.
-
-Sett `DEMO_MODE=0` for å skjule demo-seed på lokal server. Når Supabase er konfigurert, er demo-seed automatisk deaktivert.
-
-## Supabase
-
-Produksjon og Netlify-demo bruker Supabase. Lokal utvikling kan fortsatt bruke SQLite fallback.
-
-1. Lag et Supabase-prosjekt.
+1. Lag et Supabase-prosjekt for kunden.
 2. Åpne SQL Editor i Supabase.
 3. Kjør innholdet i `supabase/schema.sql`.
-4. Sett miljøvariabler på serveren:
+4. Hent `Project URL` og `service_role` key fra Supabase settings.
+5. Legg verdiene i Netlify environment variables.
+
+Miljøvariabler for database/admin:
 
 ```env
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ADMIN_USERNAME=admin
 ADMIN_PASSWORD=et-sterkt-passord
+PUBLIC_SITE_URL=https://kundedomenet.no
+BOOKING_BUSINESS_NAME=Oslo Paintball
 BOOKING_SLOT_CAPACITY=2
 BOOKING_EXTRA_OPEN_DATES=
 ```
 
-Når `SUPABASE_URL` og `SUPABASE_SERVICE_ROLE_KEY` finnes, bruker `server.js` Supabase automatisk. Uten disse bruker den `data/bookings.db` lokalt.
+`SUPABASE_SERVICE_ROLE_KEY` skal kun ligge server-side i Netlify/local env. Den skal aldri inn i frontend.
 
-`SUPABASE_SERVICE_ROLE_KEY` skal bare ligge på serveren, aldri i frontend eller offentlig repo.
+## E-postvarsling
+
+Løsningen bruker Resend via HTTP API hvis disse miljøvariablene finnes:
+
+```env
+RESEND_API_KEY=re_xxx
+BOOKING_FROM_EMAIL=Oslo Paintball <booking@oslopaintball.no>
+BOOKING_REPLY_TO_EMAIL=booking@oslopaintball.no
+ADMIN_NOTIFY_EMAIL=booking@oslopaintball.no
+```
+
+Når e-post er konfigurert:
+
+- Kunden får e-post når bookingforespørselen er mottatt.
+- Admin får e-post ved ny bookingforespørsel.
+- Kunden får ny e-post når admin setter status til `confirmed`.
+
+Avsenderadressen må være verifisert hos e-postleverandøren før produksjon.
+
+## SMS-varsling
+
+Løsningen bruker Twilio via HTTP API hvis disse miljøvariablene finnes:
+
+```env
+TWILIO_ACCOUNT_SID=ACxxx
+TWILIO_AUTH_TOKEN=xxx
+TWILIO_FROM_NUMBER=+47xxxxxxxx
+ADMIN_NOTIFY_PHONE=+47xxxxxxxx
+```
+
+Når SMS er konfigurert:
+
+- Kunden får SMS når bookingforespørselen er mottatt.
+- Admin får SMS ved ny bookingforespørsel hvis `ADMIN_NOTIFY_PHONE` er satt.
+- Kunden får ny SMS når admin setter status til `confirmed`.
+
+Telefonnummer fra skjemaet normaliseres til norsk `+47` når kunden skriver 8 siffer.
 
 ## Netlify
 
-Netlify kan ikke kjøre `server.js` som en vanlig server. Derfor ligger API-et for Netlify i `netlify/functions/api.js`, og `netlify.toml` sender `/api/*` dit. Adminsiden beskyttes av `netlify/functions/admin.js`.
+Netlify bruker `netlify/functions/api.js` for API-et og `netlify/functions/admin.js` for admin-HTML. `netlify.toml` ruter `/api/*`, `/booking` og `/admin`.
 
-Publisering på Netlify:
+Publisering:
 
-1. Legg prosjektet på GitHub.
-2. Opprett nytt Netlify-site fra GitHub-repoet.
-3. Bruk standard build settings:
-   - Build command: tom eller `echo "No build"`
-   - Publish directory: `.`
-   - Functions directory: `netlify/functions`
-4. Legg inn environment variables i Netlify:
-
-```env
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=et-sterkt-demo-passord
-SUPABASE_URL=https://your-project-ref.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-DEMO_MODE=1
-BOOKING_SLOT_CAPACITY=2
-BOOKING_EXTRA_OPEN_DATES=
-```
+1. Koble repoet til Netlify.
+2. Build command: tom eller `echo "No build"`.
+3. Publish directory: `.`.
+4. Functions directory: `netlify/functions`.
+5. Legg inn miljøvariablene over.
+6. Redeploy etter miljøvariabler er lagt inn.
 
 Etter deploy:
 
@@ -120,13 +131,11 @@ Etter deploy:
 - Booking: `https://din-netlify-url.netlify.app/booking`
 - Admin: `https://din-netlify-url.netlify.app/admin`
 
-Demo-data kan seedes via API-et når `DEMO_MODE=1`. Sett `DEMO_MODE=0` eller fjern variabelen før kundelevering.
-
-Ikke bruk `/admin.html` som kundelenke. Bruk alltid `/admin`, slik at Netlify Function håndterer innloggingen.
+Ikke del `/admin.html`. Bruk `/admin`, slik at Netlify Function håndterer innloggingen.
 
 ## Bookingdata
 
-Bookinger lagres i Supabase-tabellen `bookings`, eller lokalt i `data/bookings.db` når Supabase ikke er konfigurert. Feltene er:
+Bookinger lagres i tabellen `bookings` med disse feltene:
 
 - `id`
 - `name`
@@ -149,35 +158,20 @@ Gyldige statuser:
 - `cancelled`
 - `completed`
 
-## Bookingregler
-
-- Lørdag og søndag vises som ordinære bookingdager.
-- Faste tider: `10:00`, `12:00`, `14:00`, `16:00`, `18:00`.
-- Maks kapasitet per dato/tid er `2` bekreftede bookinger, siden anlegget har to baner.
-- Hverdager vises grått som `etter avtale`, men bookingforespørselen kan fortsatt sendes inn og må bekreftes av admin.
-- Ekstra åpne hverdager kan fremheves med miljøvariabelen `BOOKING_EXTRA_OPEN_DATES`, kommaseparert i formatet `YYYY-MM-DD`.
-
-Eksempel:
-
-```env
-BOOKING_SLOT_CAPACITY=2
-BOOKING_EXTRA_OPEN_DATES=2026-05-08,2026-05-15
-```
-
-Etter endring i Netlify environment variables må siden redeployes.
-
 ## Adminflyt
 
-1. Ny booking kommer inn som `pending`.
-2. Admin åpner bookingen, sjekker kundedetaljer og eventuelle notater.
-3. Admin kan lagre interne notater i `admin_notes`.
-4. Admin bekrefter, avlyser eller markerer bookingen som fullført.
+1. Ny booking lagres som `pending`.
+2. Admin åpner bookingen i `/admin`.
+3. Admin kan lagre interne notater.
+4. Admin setter booking til `confirmed`, `cancelled` eller `completed`.
+5. Når status settes til `confirmed`, sendes bekreftelse til kunden hvis e-post/SMS er konfigurert.
 
-Når en booking settes til `confirmed`, teller serveren bekreftede bookinger på samme dato og tidspunkt. Nye bookingforespørsler og nye bekreftelser blir avvist når tidspunktet allerede har to bekreftede bookinger.
+## Demo lokalt
 
-## Viktig
+Når Supabase ikke er konfigurert, bruker lokal server `data/bookings.db`. Demo-seeding finnes fortsatt via API-et når `DEMO_MODE` er aktivert, men er ikke en del av kundens produksjonsflyt.
 
-- Ingen online betaling
-- Ingen live availability engine
-- Enkel slot-konflikt for bekreftede bookinger
-- Betaling skjer på stedet
+```bash
+curl -u admin:paintball2026 -X POST http://localhost:3000/api/demo/seed
+```
+
+Sett `DEMO_MODE=0` for å deaktivere demo-seeding lokalt.

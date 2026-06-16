@@ -1,0 +1,14 @@
+{
+  "name": "oslo-paintball-booking",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Oslo Paintball booking site with admin overview.",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "check": "node --check server.js && node --check script.js && node --check admin.js && node --check booking-notifications.js && node --check netlify/functions/api.js && node --check netlify/functions/admin.js"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  }
+}

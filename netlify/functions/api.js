@@ -1,4 +1,5 @@
 const crypto = require("node:crypto");
+const { notifyBookingConfirmed, notifyNewBooking } = require("../../booking-notifications");
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
@@ -69,11 +70,13 @@ exports.handler = async event => {
       }
 
       const savedBooking = await insertBooking(booking, new Date().toISOString());
+      const serializedBooking = serializeBooking(savedBooking);
+      const notification = await notifyNewBooking(serializedBooking, { logger: console });
 
       return json(201, {
         message: "Booking saved.",
-        booking: serializeBooking(savedBooking),
-        notification: "Business notified via admin queue."
+        booking: serializedBooking,
+        notification
       });
     }
 
@@ -104,9 +107,15 @@ exports.handler = async event => {
       await updateBooking(bookingId, { status: nextStatus });
       const updatedBooking = await selectBookingById(bookingId);
 
+      const serializedBooking = serializeBooking(updatedBooking);
+      const notification = nextStatus === "confirmed" && existingBooking.status !== "confirmed"
+        ? await notifyBookingConfirmed(serializedBooking, { logger: console })
+        : { event: "status_update", results: [] };
+
       return json(200, {
         message: "Status updated.",
-        booking: serializeBooking(updatedBooking)
+        booking: serializedBooking,
+        notification
       });
     }
 

@@ -455,25 +455,17 @@ function setupBookingForm(form, state) {
     clearFormMessage(form);
 
     try {
-      try {
-        await requestJson(
-          "api/bookings",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json"
-            },
-            body: JSON.stringify(bookingData)
+      await requestJson(
+        "api/bookings",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
           },
-          "Kunne ikke lagre bookingforespørselen."
-        );
-      } catch (error) {
-        if (!shouldUseDemoBookingFallback()) {
-          throw error;
-        }
-
-        saveDemoBookingLocally(bookingData);
-      }
+          body: JSON.stringify(bookingData)
+        },
+        "Kunne ikke lagre bookingforespørselen."
+      );
 
       form.reset();
       resetVisualState(state);
@@ -809,38 +801,6 @@ function clearFormMessage(form) {
 
   message.className = "form-message";
   message.textContent = "";
-}
-
-function shouldUseDemoBookingFallback() {
-  return document.body?.dataset.demoBookingFallback === "true";
-}
-
-function saveDemoBookingLocally(bookingData) {
-  const storageKey = "osloPaintballDemoBookings";
-  const currentBookings = readDemoBookings(storageKey);
-  const booking = {
-    id: `demo-${Date.now()}`,
-    ...bookingData,
-    group_size: Number.parseInt(bookingData.group_size, 10),
-    status: "pending",
-    created_at: new Date().toISOString()
-  };
-
-  try {
-    window.localStorage?.setItem(storageKey, JSON.stringify([booking, ...currentBookings].slice(0, 25)));
-  } catch {
-    // Demo fallback should never block the visible booking confirmation.
-  }
-}
-
-function readDemoBookings(storageKey) {
-  try {
-    const raw = window.localStorage?.getItem(storageKey);
-    const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
 }
 
 async function requestJson(url, init, fallbackMessage) {

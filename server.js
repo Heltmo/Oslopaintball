@@ -3,6 +3,7 @@ const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { URL } = require("node:url");
+const { notifyBookingConfirmed, notifyNewBooking } = require("./booking-notifications");
 
 const ROOT = __dirname;
 loadLocalEnv(path.join(ROOT, ".env"));
@@ -98,6 +99,8 @@ const server = http.createServer(async (req, res) => {
 
       const createdAt = new Date().toISOString();
       const savedBooking = await insertBooking(booking, createdAt);
+      const serializedBooking = serializeBooking(savedBooking);
+      const notification = await notifyNewBooking(serializedBooking, { logger: console });
 
       console.log(
         `[BOOKING] New booking #${savedBooking.id} from ${savedBooking.name} for ${savedBooking.preferred_date} ${savedBooking.preferred_time}`
@@ -105,8 +108,8 @@ const server = http.createServer(async (req, res) => {
 
       return sendJson(res, 201, {
         message: "Booking saved.",
-        booking: serializeBooking(savedBooking),
-        notification: "Business notified via admin queue and server log."
+        booking: serializedBooking,
+        notification
       });
     }
 
@@ -140,9 +143,15 @@ const server = http.createServer(async (req, res) => {
         return sendJson(res, 404, { error: "Fant ikke booking." });
       }
 
+      const serializedBooking = serializeBooking(updatedBooking);
+      const notification = nextStatus === "confirmed" && existingBooking.status !== "confirmed"
+        ? await notifyBookingConfirmed(serializedBooking, { logger: console })
+        : { event: "status_update", results: [] };
+
       return sendJson(res, 200, {
         message: "Status updated.",
-        booking: serializeBooking(updatedBooking)
+        booking: serializedBooking,
+        notification
       });
     }
 
