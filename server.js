@@ -583,12 +583,7 @@ function ensureColumn(tableName, columnName, columnDefinition) {
 async function supabaseRequest(pathname, init = {}) {
   const response = await fetch(`${SUPABASE_URL}${pathname}`, {
     ...init,
-    headers: {
-      apikey: SUPABASE_SERVICE_ROLE_KEY,
-      Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-      "Content-Type": "application/json",
-      ...(init.headers || {})
-    }
+    headers: getSupabaseHeaders(init.headers)
   });
 
   const raw = await response.text();
@@ -608,6 +603,20 @@ async function supabaseRequest(pathname, init = {}) {
   }
 
   return payload || [];
+}
+
+function getSupabaseHeaders(extraHeaders = {}) {
+  const headers = {
+    apikey: SUPABASE_SERVICE_ROLE_KEY,
+    "Content-Type": "application/json",
+    ...extraHeaders
+  };
+
+  if (!SUPABASE_SERVICE_ROLE_KEY.startsWith("sb_")) {
+    headers.Authorization = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+  }
+
+  return headers;
 }
 
 function normalizeSupabaseUrl(value) {
