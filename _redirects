@@ -10,4 +10,13 @@
 /README.md /404.html 404
 /.env /404.html 404
 /server-*.log /404.html 404
+/.env.example /404.html 404
+/.gitignore /404.html 404
+/.nvmrc /404.html 404
+/_redirects /404.html 404
+/netlify.toml /404.html 404
+/booking-notifications.js /404.html 404
+/LAUNCH_CHECKLIST.md /404.html 404
+/KENNETH_BRUKERVEILEDNING.md /404.html 404
+/supabase/* /404.html 404
 /* /index.html 200

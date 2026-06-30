@@ -96,7 +96,6 @@ body {
 
 .admin-link,
 .admin-refresh,
-.admin-demo-seed,
 .status-select {
   display: inline-flex;
   align-items: center;
@@ -139,7 +138,6 @@ body {
 
 .admin-link:hover,
 .admin-refresh:hover,
-.admin-demo-seed:hover,
 .status-select:hover,
 .admin-row-action:hover,
 .admin-detail-actions a:hover,

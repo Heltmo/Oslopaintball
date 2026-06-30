@@ -25,6 +25,18 @@ const BOOKING_ALLOWED_TIMES = ["10:00", "12:00", "14:00", "16:00", "18:00"];
 const BOOKING_WEEKEND_DAYS = [0, 6];
 const BOOKING_SLOT_CAPACITY = parsePositiveInteger(process.env.BOOKING_SLOT_CAPACITY, 2);
 const BOOKING_EXTRA_OPEN_DATES = parseDateList(process.env.BOOKING_EXTRA_OPEN_DATES || "");
+const SECURITY_HEADERS = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+};
+
+const NO_STORE_HEADERS = {
+  ...SECURITY_HEADERS,
+  "Cache-Control": "no-store"
+};
+
 const PACKAGE_RULES = {
   "Over 18 år": { min: 10, max: 24 },
   "Under 18 år": { min: 10, max: 24 },
@@ -857,6 +869,7 @@ function safeEqual(left, right) {
 
 function requestAdminAuth(res) {
   res.writeHead(401, {
+    ...NO_STORE_HEADERS,
     "WWW-Authenticate": 'Basic realm="Oslo Paintball Admin"',
     "Content-Type": "text/plain; charset=utf-8"
   });
@@ -943,10 +956,16 @@ function serveStatic(requestPath, res) {
     }
 
     res.writeHead(200, {
+      ...getSecurityHeadersForPath(resolvedPath),
       "Content-Type": getContentType(resolvedPath)
     });
     res.end(data);
   });
+}
+
+function getSecurityHeadersForPath(filePath) {
+  const basename = path.basename(filePath);
+  return basename === "admin.html" ? NO_STORE_HEADERS : SECURITY_HEADERS;
 }
 
 function getContentType(filePath) {
@@ -977,6 +996,7 @@ function getContentType(filePath) {
 
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, {
+    ...NO_STORE_HEADERS,
     "Content-Type": "application/json; charset=utf-8"
   });
   res.end(JSON.stringify(payload));

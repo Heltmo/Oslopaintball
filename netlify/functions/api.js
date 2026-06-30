@@ -13,6 +13,13 @@ const BOOKING_GROUP_MAX = 100;
 const BOOKING_ALLOWED_TIMES = ["10:00", "12:00", "14:00", "16:00", "18:00"];
 const BOOKING_WEEKEND_DAYS = [0, 6];
 const BOOKING_SLOT_CAPACITY = parsePositiveInteger(process.env.BOOKING_SLOT_CAPACITY, 2);
+const SECURITY_HEADERS = {
+  "Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+};
 const BOOKING_EXTRA_OPEN_DATES = parseDateList(process.env.BOOKING_EXTRA_OPEN_DATES || "");
 const PACKAGE_RULES = {
   "Over 18 år": { min: 10, max: 24 },
@@ -561,6 +568,7 @@ function adminAuthResponse() {
   return {
     statusCode: 401,
     headers: {
+      ...SECURITY_HEADERS,
       "WWW-Authenticate": 'Basic realm="Oslo Paintball Admin"',
       "Content-Type": "text/plain; charset=utf-8"
     },
@@ -617,6 +625,7 @@ function json(statusCode, payload) {
   return {
     statusCode,
     headers: {
+      ...SECURITY_HEADERS,
       "Content-Type": "application/json; charset=utf-8"
     },
     body: statusCode === 204 ? "" : JSON.stringify(payload)

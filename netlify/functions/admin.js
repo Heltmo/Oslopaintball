@@ -4,12 +4,20 @@ const path = require("node:path");
 
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+const SECURITY_HEADERS = {
+  "Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "SAMEORIGIN",
+  "Referrer-Policy": "strict-origin-when-cross-origin",
+  "Permissions-Policy": "camera=(), microphone=(), geolocation=()"
+};
 
 exports.handler = async event => {
   if (!hasAdminCredentials()) {
     return {
       statusCode: 500,
       headers: {
+        ...SECURITY_HEADERS,
         "Content-Type": "text/plain; charset=utf-8"
       },
       body: "Admin-login er ikke konfigurert. Sett ADMIN_USERNAME og ADMIN_PASSWORD i Netlify."
@@ -20,6 +28,7 @@ exports.handler = async event => {
     return {
       statusCode: 401,
       headers: {
+        ...SECURITY_HEADERS,
         "WWW-Authenticate": 'Basic realm="Oslo Paintball Admin"',
         "Content-Type": "text/plain; charset=utf-8"
       },
@@ -33,6 +42,7 @@ exports.handler = async event => {
   return {
     statusCode: 200,
     headers: {
+      ...SECURITY_HEADERS,
       "Content-Type": "text/html; charset=utf-8"
     },
     body: html

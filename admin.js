@@ -1,7 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
   const bookingsBody = document.querySelector(".bookings-body");
   const refreshButton = document.querySelector(".admin-refresh");
-  const demoSeedButton = document.querySelector(".admin-demo-seed");
   const messageBox = document.querySelector(".admin-message");
   const searchInput = document.querySelector(".admin-search");
   const statusFilter = document.querySelector(".admin-status-filter");
@@ -76,31 +75,6 @@ document.addEventListener("DOMContentLoaded", () => {
       loadBookings({ initial: false });
     });
   }
-
-  demoSeedButton?.addEventListener("click", async () => {
-    demoSeedButton.disabled = true;
-
-    try {
-      const payload = await requestJson(
-        "api/demo/seed",
-        { method: "POST" },
-        "Kunne ikke laste demo-data."
-      );
-
-      allBookings = payload.bookings || [];
-      selectedBookingId = null;
-      if (detailPanel) {
-        detailPanel.hidden = true;
-      }
-      renderSummary(summaryTargets, payload.summary || getSummary(allBookings));
-      renderVisibleBookings();
-      showMessage(messageBox, `Demo-data er klar (${payload.inserted || 0} bookinger).`, "success");
-    } catch (error) {
-      showMessage(messageBox, error.message, "error");
-    } finally {
-      demoSeedButton.disabled = false;
-    }
-  });
 
   [searchInput, statusFilter, dateFilter].forEach(input => {
     input?.addEventListener("input", () => {
