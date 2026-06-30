@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const detailClose = document.querySelector(".admin-detail-close");
   const noteInput = document.querySelector(".admin-note-input");
   const saveNoteButton = document.querySelector(".admin-save-note");
+  const deleteBookingButton = document.querySelector(".admin-delete-booking");
   const detailTargets = {
     title: document.querySelector("[data-detail-title]"),
     customer: document.querySelector("[data-detail-customer]"),
@@ -162,6 +163,51 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     updateBookingStatus(selectedBookingId, target.dataset.detailStatus || "");
+  });
+
+  deleteBookingButton?.addEventListener("click", async () => {
+    if (selectedBookingId == null) {
+      return;
+    }
+
+    const booking = allBookings.find(item => item.id === selectedBookingId);
+    const label = booking ? `#${booking.id} - ${booking.name}` : `#${selectedBookingId}`;
+    const confirmed = window.confirm(`Slette booking ${label}? Dette kan ikke angres.`);
+
+    if (!confirmed) {
+      return;
+    }
+
+    if (isPreviewMode) {
+      allBookings = allBookings.filter(item => item.id !== selectedBookingId);
+      selectedBookingId = null;
+      if (detailPanel) {
+        detailPanel.hidden = true;
+      }
+      renderSummary(summaryTargets, getSummary(allBookings));
+      renderVisibleBookings();
+      showMessage(messageBox, `Preview: booking ${label} er slettet.`, "preview");
+      return;
+    }
+
+    try {
+      await requestJson(
+        `api/bookings/${selectedBookingId}`,
+        { method: "DELETE" },
+        "Kunne ikke slette booking."
+      );
+
+      allBookings = allBookings.filter(item => item.id !== selectedBookingId);
+      selectedBookingId = null;
+      if (detailPanel) {
+        detailPanel.hidden = true;
+      }
+      renderSummary(summaryTargets, getSummary(allBookings));
+      renderVisibleBookings();
+      showMessage(messageBox, `Booking ${label} er slettet.`, "success");
+    } catch (error) {
+      showMessage(messageBox, error.message, "error");
+    }
   });
 
   saveNoteButton?.addEventListener("click", async () => {

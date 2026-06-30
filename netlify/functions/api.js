@@ -119,6 +119,22 @@ exports.handler = async event => {
       });
     }
 
+    const deleteMatch = apiPath.match(/^\/api\/bookings\/(\d+)$/);
+    if (method === "DELETE" && deleteMatch) {
+      const bookingId = Number.parseInt(deleteMatch[1], 10);
+      const existingBooking = await selectBookingById(bookingId);
+
+      if (!existingBooking) {
+        return json(404, { error: "Fant ikke booking." });
+      }
+
+      await deleteBooking(bookingId);
+      return json(200, {
+        message: "Booking deleted.",
+        booking: serializeBooking(existingBooking)
+      });
+    }
+
     const noteMatch = apiPath.match(/^\/api\/bookings\/(\d+)\/admin-notes$/);
     if (method === "PATCH" && noteMatch) {
       const bookingId = Number.parseInt(noteMatch[1], 10);
@@ -197,6 +213,15 @@ async function selectAllBookings() {
 async function selectBookingById(bookingId) {
   const rows = await supabaseRequest(`/rest/v1/bookings?select=*&id=eq.${encodeURIComponent(bookingId)}&limit=1`);
   return rows[0] || null;
+}
+
+async function deleteBooking(bookingId) {
+  await supabaseRequest(`/rest/v1/bookings?id=eq.${encodeURIComponent(bookingId)}`, {
+    method: "DELETE",
+    headers: {
+      Prefer: "return=minimal"
+    }
+  });
 }
 
 async function updateBooking(bookingId, patch) {
@@ -483,7 +508,8 @@ function requiresAdminAuth(method, apiPath) {
     return true;
   }
 
-  return method === "PATCH" && /^\/api\/bookings\/\d+\/(status|admin-notes)$/.test(apiPath);
+  return (method === "PATCH" && /^\/api\/bookings\/\d+\/(status|admin-notes)$/.test(apiPath)) ||
+    (method === "DELETE" && /^\/api\/bookings\/\d+$/.test(apiPath));
 }
 
 function isAdminAuthorized(headers) {

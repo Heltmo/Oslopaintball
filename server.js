@@ -159,6 +159,21 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
+    if (req.method === "DELETE" && /^\/api\/bookings\/\d+$/.test(requestUrl.pathname)) {
+      const bookingId = Number.parseInt(requestUrl.pathname.split("/")[3], 10);
+      const existingBooking = await selectBookingById(bookingId);
+
+      if (!existingBooking) {
+        return sendJson(res, 404, { error: "Fant ikke booking." });
+      }
+
+      await deleteBooking(bookingId);
+      return sendJson(res, 200, {
+        message: "Booking deleted.",
+        booking: serializeBooking(existingBooking)
+      });
+    }
+
     if (req.method === "PATCH" && /^\/api\/bookings\/\d+\/admin-notes$/.test(requestUrl.pathname)) {
       const bookingId = Number.parseInt(requestUrl.pathname.split("/")[3], 10);
       const body = await readJsonBody(req);
@@ -322,6 +337,20 @@ async function updateBookingStatus(status, bookingId) {
       WHERE id = ?
     `)
     .run(status, bookingId);
+}
+
+async function deleteBooking(bookingId) {
+  if (USE_SUPABASE) {
+    await supabaseRequest(`/rest/v1/bookings?id=eq.${encodeURIComponent(bookingId)}`, {
+      method: "DELETE",
+      headers: {
+        Prefer: "return=minimal"
+      }
+    });
+    return;
+  }
+
+  db.prepare("DELETE FROM bookings WHERE id = ?").run(bookingId);
 }
 
 async function updateBookingAdminNotes(adminNotes, bookingId) {
@@ -777,7 +806,8 @@ function requiresAdminAuth(method, requestPath) {
     return true;
   }
 
-  return method === "PATCH" && /^\/api\/bookings\/\d+\/(status|admin-notes)$/.test(requestPath);
+  return (method === "PATCH" && /^\/api\/bookings\/\d+\/(status|admin-notes)$/.test(requestPath)) ||
+    (method === "DELETE" && /^\/api\/bookings\/\d+$/.test(requestPath));
 }
 
 function isAdminAuthorized(req) {

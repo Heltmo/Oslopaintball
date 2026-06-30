@@ -144,7 +144,8 @@ body {
 .admin-row-action:hover,
 .admin-detail-actions a:hover,
 .admin-detail-actions button:hover,
-.admin-save-note:hover {
+.admin-save-note:hover,
+.admin-delete-booking:hover {
   border-color: var(--accent);
   box-shadow: 0 0 0 3px rgba(47, 125, 50, 0.11);
 }
@@ -296,6 +297,7 @@ body {
 .admin-detail-actions a:focus,
 .admin-detail-actions button:focus,
 .admin-save-note:focus,
+.admin-delete-booking:focus,
 .admin-note-input:focus {
   outline: 3px solid rgba(47, 125, 50, 0.16);
   outline-offset: 1px;
@@ -422,7 +424,8 @@ body {
 .admin-detail-close,
 .admin-detail-actions a,
 .admin-detail-actions button,
-.admin-save-note {
+.admin-save-note,
+.admin-delete-booking {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -513,8 +516,27 @@ body {
 
 .admin-detail-actions a,
 .admin-detail-actions button,
-.admin-save-note {
+.admin-save-note,
+.admin-delete-booking {
   padding: 9px 13px;
+}
+
+.admin-detail-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.admin-delete-booking {
+  border-color: rgba(180, 35, 24, 0.32);
+  color: var(--red);
+}
+
+.admin-delete-booking:hover {
+  background: var(--red-soft);
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.1);
 }
 
 .admin-detail-actions [data-detail-status="confirmed"] {
@@ -610,7 +632,10 @@ body {
   .admin-clear-filters,
   .admin-header-actions,
   .admin-link,
-  .admin-refresh {
+  .admin-refresh,
+  .admin-detail-footer,
+  .admin-save-note,
+  .admin-delete-booking {
     width: 100%;
   }
 }
