@@ -55,3 +55,9 @@ create index if not exists bookings_status_idx
   on public.bookings (status);
 
 alter table public.bookings enable row level security;
+
+grant usage on schema public to service_role;
+
+grant select, insert, update, delete on table public.bookings to service_role;
+
+grant usage, select on sequence public.bookings_id_seq to service_role;
