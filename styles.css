@@ -1653,6 +1653,31 @@ img {
   cursor: pointer;
 }
 
+.consent-check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.7rem;
+  align-items: flex-start;
+  margin: 1rem 0 1.1rem;
+  color: rgba(248, 248, 248, 0.78);
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+
+.consent-check input[type="checkbox"] {
+  margin-top: 0.18rem;
+  accent-color: var(--brand-red);
+}
+
+.consent-check.has-error {
+  color: #ffd7d7;
+}
+
+.consent-check .field-error-text {
+  grid-column: 2;
+  margin-top: -0.3rem;
+}
+
 .extra-check-label {
   flex: 1;
   font-size: 14px;

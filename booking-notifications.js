@@ -93,7 +93,7 @@ async function notifyNewBooking(booking, options = {}) {
 
 async function notifyBookingConfirmed(booking, options = {}) {
   const config = getNotificationConfig(options.env || process.env);
-  const details = getBookingDetails(booking, config);
+  const details = getBookingDetails(booking, config, { includeCalendar: true });
   const jobs = [];
 
   if (config.email.enabled) {
@@ -146,6 +146,8 @@ function getNotificationConfig(env) {
     adminUrl: env.ADMIN_URL || (publicUrl ? `${publicUrl}/admin` : ""),
     adminEmail: env.ADMIN_NOTIFY_EMAIL || "",
     adminPhone: env.ADMIN_NOTIFY_PHONE || "",
+    location: env.BOOKING_LOCATION || "Oslo Paintball, Stuaveien, 1480 Slattum",
+    eventDurationMinutes: parsePositiveInteger(env.BOOKING_EVENT_DURATION_MINUTES, 120),
     timeoutMs: parsePositiveInteger(env.NOTIFICATION_TIMEOUT_MS, DEFAULT_TIMEOUT_MS),
     email: {
       enabled: Boolean(env.RESEND_API_KEY && (env.BOOKING_FROM_EMAIL || env.RESEND_FROM_EMAIL)),
@@ -265,28 +267,72 @@ async function assertOk(response, providerName) {
   throw new Error(`${providerName} svarte ${response.status}: ${message || "ukjent feil"}`);
 }
 
-function getBookingDetails(booking, config) {
+function getBookingDetails(booking, config, options = {}) {
   const extras = Array.isArray(booking.extras) && booking.extras.length ? booking.extras.join(", ") : "Ingen tillegg";
   const notes = booking.notes || "Ingen kundemelding.";
+  const calendarUrl = options.includeCalendar ? getGoogleCalendarUrl(booking, config) : "";
   const text = [
     `Pakke: ${booking.package}`,
     `Dato/tid: ${booking.preferred_date} kl. ${booking.preferred_time}`,
     `Antall: ${booking.group_size} personer`,
+    `Sted: ${config.location}`,
     `Tillegg: ${extras}`,
-    `Melding: ${notes}`
-  ].join("\n");
+    `Melding: ${notes}`,
+    calendarUrl ? `Kalender: ${calendarUrl}` : ""
+  ].filter(Boolean).join("\n");
   const html = `
     <dl>
       <dt>Pakke</dt><dd>${escapeHtml(booking.package)}</dd>
       <dt>Dato/tid</dt><dd>${escapeHtml(booking.preferred_date)} kl. ${escapeHtml(booking.preferred_time)}</dd>
       <dt>Antall</dt><dd>${escapeHtml(booking.group_size)} personer</dd>
+      <dt>Sted</dt><dd>${escapeHtml(config.location)}</dd>
       <dt>Tillegg</dt><dd>${escapeHtml(extras)}</dd>
       <dt>Melding</dt><dd>${escapeHtml(notes)}</dd>
     </dl>
+    ${calendarUrl ? `<p><a href="${escapeAttribute(calendarUrl)}">Legg til i Google Kalender</a></p>` : ""}
     ${config.publicUrl ? `<p><a href="${escapeAttribute(config.publicUrl)}">${escapeHtml(config.businessName)}</a></p>` : ""}
   `;
 
   return { text, html };
+}
+
+function getGoogleCalendarUrl(booking, config) {
+  const date = String(booking.preferred_date || "").trim();
+  const time = String(booking.preferred_time || "").trim();
+  const dateMatch = date.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const timeMatch = time.match(/^(\d{2}):(\d{2})$/);
+
+  if (!dateMatch || !timeMatch) {
+    return "";
+  }
+
+  const year = Number.parseInt(dateMatch[1], 10);
+  const month = Number.parseInt(dateMatch[2], 10);
+  const day = Number.parseInt(dateMatch[3], 10);
+  const hour = Number.parseInt(timeMatch[1], 10);
+  const minute = Number.parseInt(timeMatch[2], 10);
+  const end = new Date(Date.UTC(year, month - 1, day, hour, minute + config.eventDurationMinutes));
+  const startStamp = `${dateMatch[1]}${dateMatch[2]}${dateMatch[3]}T${timeMatch[1]}${timeMatch[2]}00`;
+  const endStamp = [
+    end.getUTCFullYear(),
+    String(end.getUTCMonth() + 1).padStart(2, "0"),
+    String(end.getUTCDate()).padStart(2, "0")
+  ].join("") + `T${String(end.getUTCHours()).padStart(2, "0")}${String(end.getUTCMinutes()).padStart(2, "0")}00`;
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: `${config.businessName}: ${booking.package}`,
+    dates: `${startStamp}/${endStamp}`,
+    details: [
+      `Booking hos ${config.businessName}`,
+      `Pakke: ${booking.package}`,
+      `Antall: ${booking.group_size} personer`,
+      "Betaling skjer på stedet."
+    ].join("\n"),
+    location: config.location,
+    ctz: "Europe/Oslo"
+  });
+
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
 function bookingEmailHtml(config, title, paragraphs, detailsHtml) {

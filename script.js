@@ -600,6 +600,7 @@ function collectBookingData(form) {
     preferred_time: formData.get("preferredTime")?.toString().trim() || "",
     extras: [...document.querySelectorAll('input[name="extrasVisual"]:checked')].map(input => input.value),
     notes: formData.get("message")?.toString().trim() || "",
+    privacy_consent: formData.get("privacyConsent") === "1",
     website: formData.get("website")?.toString().trim() || ""
   };
 }
@@ -621,6 +622,10 @@ function getBookingValidationErrors(data, rules = getDefaultBookingRules()) {
 
   if (!data.package) {
     errors.package = "Velg en pakke.";
+  }
+
+  if (!data.privacy_consent) {
+    errors.privacyConsent = "Bekreft at opplysningene kan brukes til å behandle bookingforespørselen.";
   }
 
   if (!data.preferred_date) {
@@ -685,10 +690,12 @@ function setupFormFieldValidation(form) {
   const fullNameInput = form.querySelector("#fullName");
   const phoneInput = form.querySelector("#phone");
   const emailInput = form.querySelector("#email");
+  const privacyInput = form.querySelector("#privacyConsent");
 
   fullNameInput?.addEventListener("input", () => clearValidationError("fullName"));
   phoneInput?.addEventListener("input", () => clearValidationError("phone"));
   emailInput?.addEventListener("input", () => clearValidationError("email"));
+  privacyInput?.addEventListener("change", () => clearValidationError("privacyConsent"));
 }
 
 function applyValidationErrors(errors) {
@@ -736,7 +743,8 @@ function getValidationContainer(field) {
     preferredTime: '[data-validation-group="preferredTime"]',
     fullName: '[data-validation-field="fullName"]',
     phone: '[data-validation-field="phone"]',
-    email: '[data-validation-field="email"]'
+    email: '[data-validation-field="email"]',
+    privacyConsent: '[data-validation-field="privacyConsent"]'
   };
 
   const selector = selectorMap[field];

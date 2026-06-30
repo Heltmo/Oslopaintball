@@ -51,11 +51,15 @@ if (!USE_SUPABASE) {
       extras TEXT NOT NULL DEFAULT '[]',
       notes TEXT NOT NULL DEFAULT '',
       admin_notes TEXT NOT NULL DEFAULT '',
+      privacy_consent INTEGER NOT NULL DEFAULT 1,
+      privacy_consent_at TEXT NOT NULL DEFAULT '',
       status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'confirmed', 'cancelled', 'completed')),
       created_at TEXT NOT NULL
     );
   `);
   ensureColumn("bookings", "admin_notes", "TEXT NOT NULL DEFAULT ''");
+  ensureColumn("bookings", "privacy_consent", "INTEGER NOT NULL DEFAULT 1");
+  ensureColumn("bookings", "privacy_consent_at", "TEXT NOT NULL DEFAULT ''");
 }
 
 const server = http.createServer(async (req, res) => {
@@ -226,6 +230,8 @@ async function insertBooking(booking, createdAt) {
         preferred_time: booking.preferred_time,
         extras: booking.extras,
         notes: booking.notes,
+        privacy_consent: booking.privacy_consent,
+        privacy_consent_at: createdAt,
         status: "pending",
         created_at: createdAt
       })
@@ -246,9 +252,11 @@ async function insertBooking(booking, createdAt) {
         preferred_time,
         extras,
         notes,
+        privacy_consent,
+        privacy_consent_at,
         status,
         created_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)
     `)
     .run(
       booking.name,
@@ -260,6 +268,8 @@ async function insertBooking(booking, createdAt) {
       booking.preferred_time,
       JSON.stringify(booking.extras),
       booking.notes,
+      booking.privacy_consent ? 1 : 0,
+      createdAt,
       createdAt
     );
 
@@ -428,6 +438,8 @@ async function seedDemoBookings() {
       JSON.stringify(booking.extras),
       booking.notes,
       booking.admin_notes,
+      booking.privacy_consent ? 1 : 0,
+      booking.privacy_consent_at || booking.created_at,
       booking.status,
       booking.created_at
     );
@@ -454,6 +466,8 @@ function getDemoBookings() {
       extras: ["Ekstra 200 baller"],
       notes: "Bedriftsgruppe som ønsker en enkel kickoff. Ring helst mellom 10 og 14.",
       admin_notes: "Demo: ring kunden, bekreft antall og spør om faktura.",
+      privacy_consent: true,
+      privacy_consent_at: new Date(now - 18 * 60 * 1000).toISOString(),
       status: "pending",
       created_at: new Date(now - 18 * 60 * 1000).toISOString()
     },
@@ -468,6 +482,8 @@ function getDemoBookings() {
       extras: ["Engangsdress"],
       notes: "Bursdag for 13-åringer. Foreldre blir med som tilskuere.",
       admin_notes: "Demo: allerede bekreftet. Husk ekstra sikkerhetsgjennomgang.",
+      privacy_consent: true,
+      privacy_consent_at: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
       status: "confirmed",
       created_at: new Date(now - 2 * 60 * 60 * 1000).toISOString()
     },
@@ -482,6 +498,8 @@ function getDemoBookings() {
       extras: ["Ekstra 200 baller"],
       notes: "Ønsker turneringsoppsett med finale og laginndeling.",
       admin_notes: "Demo: sjekk bemanning før bekreftelse.",
+      privacy_consent: true,
+      privacy_consent_at: new Date(now - 5 * 60 * 60 * 1000).toISOString(),
       status: "pending",
       created_at: new Date(now - 5 * 60 * 60 * 1000).toISOString()
     },
@@ -496,6 +514,8 @@ function getDemoBookings() {
       extras: [],
       notes: "Utdrikningslag. Ønsker rask avklaring på om tidspunktet passer.",
       admin_notes: "Demo: kunden avlyste per telefon.",
+      privacy_consent: true,
+      privacy_consent_at: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
       status: "cancelled",
       created_at: new Date(now - 24 * 60 * 60 * 1000).toISOString()
     },
@@ -510,6 +530,8 @@ function getDemoBookings() {
       extras: ["Ekstra 200 baller", "Engangsdress"],
       notes: "Skolegruppe som ønsker et rolig opplegg med tydelig instruktør.",
       admin_notes: "Demo: fullført demo-case for å vise historikk.",
+      privacy_consent: true,
+      privacy_consent_at: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString(),
       status: "completed",
       created_at: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString()
     }
@@ -675,6 +697,7 @@ function normalizeBookingInput(input) {
     preferred_time: String(input?.preferred_time || "").trim(),
     extras,
     notes: String(input?.notes || "").trim(),
+    privacy_consent: input?.privacy_consent === true || input?.privacy_consent === "1",
     website: String(input?.website || "").trim()
   };
 }
@@ -682,6 +705,10 @@ function normalizeBookingInput(input) {
 function validateBooking(booking) {
   if (booking.website) {
     return "Bookingforespørselen ble avvist.";
+  }
+
+  if (!booking.privacy_consent) {
+    return "Du må bekrefte at opplysningene kan brukes til å behandle bookingforespørselen.";
   }
 
   if (

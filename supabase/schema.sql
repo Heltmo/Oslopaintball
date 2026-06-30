@@ -10,9 +10,37 @@ create table if not exists public.bookings (
   extras jsonb not null default '[]'::jsonb,
   notes text not null default '',
   admin_notes text not null default '',
+  privacy_consent boolean,
+  privacy_consent_at timestamptz,
   status text not null default 'pending' check (status in ('pending', 'confirmed', 'cancelled', 'completed')),
   created_at timestamptz not null default now()
 );
+
+alter table public.bookings
+  add column if not exists privacy_consent boolean;
+
+alter table public.bookings
+  add column if not exists privacy_consent_at timestamptz;
+
+update public.bookings
+  set privacy_consent = true
+  where privacy_consent is null;
+
+update public.bookings
+  set privacy_consent_at = coalesce(created_at, now())
+  where privacy_consent_at is null;
+
+alter table public.bookings
+  alter column privacy_consent set not null;
+
+alter table public.bookings
+  alter column privacy_consent_at set not null;
+
+alter table public.bookings
+  drop constraint if exists bookings_privacy_consent_check;
+
+alter table public.bookings
+  add constraint bookings_privacy_consent_check check (privacy_consent = true);
 
 drop index if exists public.bookings_confirmed_slot_unique;
 

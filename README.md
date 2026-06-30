@@ -68,6 +68,8 @@ ADMIN_USERNAME=admin
 ADMIN_PASSWORD=et-sterkt-passord
 PUBLIC_SITE_URL=https://kundedomenet.no
 BOOKING_BUSINESS_NAME=Oslo Paintball
+BOOKING_LOCATION=Oslo Paintball, Stuaveien, 1480 Slattum
+BOOKING_EVENT_DURATION_MINUTES=120
 BOOKING_SLOT_CAPACITY=2
 BOOKING_EXTRA_OPEN_DATES=
 ```
@@ -90,6 +92,7 @@ Når e-post er konfigurert:
 - Kunden får e-post når bookingforespørselen er mottatt.
 - Admin får e-post ved ny bookingforespørsel.
 - Kunden får ny e-post når admin setter status til `confirmed`.
+- Bekreftelsesmailen inneholder en enkel Google Kalender-lenke når dato og tid er satt.
 
 Avsenderadressen må være verifisert hos e-postleverandøren før produksjon.
 
@@ -148,6 +151,8 @@ Bookinger lagres i tabellen `bookings` med disse feltene:
 - `extras`
 - `notes`
 - `admin_notes`
+- `privacy_consent`
+- `privacy_consent_at`
 - `status`
 - `created_at`
 
