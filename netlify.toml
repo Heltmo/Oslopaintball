@@ -37,82 +37,98 @@
   from = "/data/*"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/netlify/*"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/server.js"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/package.json"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/README.md"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/.env"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/server-*.log"
   to = "/404.html"
   status = 404
+  force = true
 
 
 [[redirects]]
   from = "/.env.example"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/.gitignore"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/.nvmrc"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/_redirects"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/netlify.toml"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/booking-notifications.js"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/LAUNCH_CHECKLIST.md"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/KENNETH_BRUKERVEILEDNING.md"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/supabase/*"
   to = "/404.html"
   status = 404
+  force = true
 
 [[redirects]]
   from = "/*"
