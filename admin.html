@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Oslo Paintball – Admin bookings</title>
+    <title>Oslo Paintball – Bookingadmin</title>
     <link
       href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700;800&display=swap"
       rel="stylesheet"
@@ -13,13 +13,13 @@
   <body>
     <header class="admin-header">
       <div>
-        <div class="admin-kicker">Admin oversikt</div>
-        <h1>INNKOMMENDE BOOKINGER</h1>
-        <p>V1-reservasjonssystem for å samle og følge opp bookingforespørsler uten e-postkaos.</p>
+        <div class="admin-kicker">Bookingadmin</div>
+        <h1>Bookingoversikt</h1>
+        <p>Følg opp nye forespørsler, status og interne notater fra ett sted.</p>
       </div>
       <div class="admin-header-actions">
-        <a href="/" class="admin-link">Til offentlig side</a>
-        <button type="button" class="admin-refresh">Oppdater nå</button>
+        <a href="/" class="admin-link">Offentlig side</a>
+        <button type="button" class="admin-refresh">Oppdater</button>
       </div>
     </header>
 
@@ -30,19 +30,19 @@
           <strong data-summary="total">0</strong>
         </article>
         <article class="summary-card">
-          <span>Pending</span>
+          <span>Venter</span>
           <strong data-summary="pending">0</strong>
         </article>
         <article class="summary-card">
-          <span>Confirmed</span>
+          <span>Bekreftet</span>
           <strong data-summary="confirmed">0</strong>
         </article>
         <article class="summary-card">
-          <span>Cancelled</span>
+          <span>Avlyst</span>
           <strong data-summary="cancelled">0</strong>
         </article>
         <article class="summary-card">
-          <span>Completed</span>
+          <span>Fullført</span>
           <strong data-summary="completed">0</strong>
         </article>
       </section>
@@ -50,10 +50,10 @@
       <section class="admin-panel">
         <div class="admin-panel-head">
           <div>
-            <div class="admin-kicker">Bookings</div>
-            <h2>ALLE FORESPØRSLER</h2>
+            <div class="admin-kicker">Forespørsler</div>
+            <h2>Alle bookinger</h2>
           </div>
-          <div class="admin-status-note">Nye bookinger vises øverst. Listen oppdateres automatisk hvert 15. sekund.</div>
+          <div class="admin-status-note">Automatisk oppdatert hvert 15. sekund.</div>
         </div>
 
         <div class="admin-controls" aria-label="Filtrer bookinger">
@@ -65,10 +65,10 @@
             <span>Status</span>
             <select class="admin-status-filter">
               <option value="all">Alle statuser</option>
-              <option value="pending">Pending</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="cancelled">Cancelled</option>
-              <option value="completed">Completed</option>
+              <option value="pending">Venter</option>
+              <option value="confirmed">Bekreftet</option>
+              <option value="cancelled">Avlyst</option>
+              <option value="completed">Fullført</option>
             </select>
           </label>
           <label class="admin-filter">
@@ -88,10 +88,10 @@
                 <th>Kunde</th>
                 <th>Pakke</th>
                 <th>Gruppe</th>
-                <th>Dato / tid</th>
+                <th>Tidspunkt</th>
                 <th>Tillegg</th>
                 <th>Status</th>
-                <th>Opprettet</th>
+                <th>Mottatt</th>
                 <th>Notater</th>
                 <th>Handling</th>
               </tr>

@@ -471,8 +471,8 @@ function renderBookings(container, bookings, latestSeenCreatedAt, selectedBookin
           <td>${escapeHtml(booking.preferred_date)}<br /><span class="booking-meta">${escapeHtml(booking.preferred_time)}</span></td>
           <td>${escapeHtml(extras)}</td>
           <td>
-            <span class="status-chip ${escapeHtml(booking.status)}">${escapeHtml(booking.status)}</span>
-            <div style="margin-top: 10px;">
+            <span class="status-chip ${escapeHtml(booking.status)}">${escapeHtml(statusLabel(booking.status))}</span>
+            <div class="status-control">
               <select class="status-select" data-booking-id="${booking.id}">
                 ${renderStatusOptions(booking.status)}
               </select>
@@ -495,8 +495,19 @@ function renderStatusOptions(currentStatus) {
   const statuses = ["pending", "confirmed", "cancelled", "completed"];
 
   return statuses
-    .map(status => `<option value="${status}" ${status === currentStatus ? "selected" : ""}>${status}</option>`)
+    .map(status => `<option value="${status}" ${status === currentStatus ? "selected" : ""}>${statusLabel(status)}</option>`)
     .join("");
+}
+
+function statusLabel(status) {
+  const labels = {
+    pending: "Venter",
+    confirmed: "Bekreftet",
+    cancelled: "Avlyst",
+    completed: "Fullført"
+  };
+
+  return labels[status] || status;
 }
 
 function showMessage(element, text, type) {
