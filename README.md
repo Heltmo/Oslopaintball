@@ -36,12 +36,7 @@ Serveren starter på `http://localhost:3000`.
 - Booking: `http://localhost:3000/booking`
 - Admin: `http://localhost:3000/admin`
 
-Standard lokal admin-login når Supabase ikke er konfigurert:
-
-- Brukernavn: `admin`
-- Passord: `paintball2026`
-
-Sett `ADMIN_USERNAME` og `ADMIN_PASSWORD` i miljøet før produksjon. Produksjon feiler lukket hvis disse mangler.
+Sett `ADMIN_USERNAME` og `ADMIN_PASSWORD` i miljøet før lokal testing og produksjon. Serveren feiler lukket hvis disse mangler.
 
 ## Kvalitetssjekk
 
@@ -65,7 +60,7 @@ Miljøvariabler for database/admin:
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ADMIN_USERNAME=Oslopaintball
-ADMIN_PASSWORD=et-sterkt-passord
+ADMIN_PASSWORD=
 PUBLIC_SITE_URL=https://oslopaintball.netlify.app
 BOOKING_BUSINESS_NAME=Oslo Paintball
 BOOKING_LOCATION=Oslo Paintball, Stuaveien, 1480 Slattum
