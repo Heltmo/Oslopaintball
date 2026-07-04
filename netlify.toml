@@ -3,7 +3,7 @@
   functions = "netlify/functions"
 
 [functions]
-  included_files = ["admin.html", "booking-notifications.js"]
+  included_files = ["admin.html", "admin-auth.js", "booking-notifications.js"]
 
 [[redirects]]
   from = "/api/*"

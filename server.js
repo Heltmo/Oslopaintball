@@ -1,8 +1,16 @@
 const http = require("node:http");
-const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const { URL } = require("node:url");
+const {
+  clearAdminSessionCookie,
+  createAdminSessionCookie,
+  hasAdminCredentials,
+  isAdminAuthorized,
+  parseFormBody,
+  renderAdminLoginPage,
+  verifyAdminCredentials
+} = require("./admin-auth");
 const { notifyBookingConfirmed, notifyNewBooking } = require("./booking-notifications");
 
 const ROOT = __dirname;
@@ -14,8 +22,6 @@ const DB_PATH = path.join(DATA_DIR, "bookings.db");
 const SUPABASE_URL = normalizeSupabaseUrl(process.env.SUPABASE_URL || "");
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 const USE_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
 const VALID_STATUSES = ["pending", "confirmed", "cancelled", "completed"];
 const BOOKING_GROUP_MIN = 10;
 const BOOKING_GROUP_MAX = 100;
@@ -76,6 +82,10 @@ const server = http.createServer(async (req, res) => {
   const requestUrl = new URL(req.url, `http://${req.headers.host || "localhost"}`);
 
   try {
+    if ((req.method === "GET" || req.method === "POST") && ["/admin", "/admin/", "/admin.html"].includes(requestUrl.pathname)) {
+      return handleAdminPage(req, res);
+    }
+
     if (requiresAdminAuth(req.method, requestUrl.pathname)) {
       if (!hasAdminCredentials()) {
         return sendJson(res, 500, {
@@ -84,7 +94,7 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (!isAdminAuthorized(req)) {
-        return requestAdminAuth(res);
+        return sendJson(res, 401, { error: "Admin-login kreves." });
       }
     }
 
@@ -642,7 +652,7 @@ function validateBooking(booking) {
 }
 
 function requiresAdminAuth(method, requestPath) {
-  if (requestPath === "/admin" || requestPath === "/admin/" || requestPath === "/admin.html") {
+  if (requestPath === "/admin.html") {
     return true;
   }
 
@@ -658,58 +668,41 @@ function requiresAdminAuth(method, requestPath) {
     (method === "DELETE" && /^\/api\/bookings\/\d+$/.test(requestPath));
 }
 
-function isAdminAuthorized(req) {
+async function handleAdminPage(req, res) {
   if (!hasAdminCredentials()) {
-    return false;
+    sendHtml(res, 200, renderAdminLoginPage({ configMissing: true }));
+    return;
   }
 
-  const header = req.headers.authorization || "";
-  const match = header.match(/^Basic\s+(.+)$/i);
+  if (req.method === "POST") {
+    const rawBody = await readRawBody(req);
+    const form = parseFormBody(rawBody);
+    const secureCookie = isSecureRequest(req);
 
-  if (!match) {
-    return false;
+    if (form.logout === "1") {
+      sendRedirect(res, "/admin", [clearAdminSessionCookie({ secure: secureCookie })]);
+      return;
+    }
+
+    if (verifyAdminCredentials(form.username || "", form.password || "")) {
+      sendRedirect(res, "/admin", [createAdminSessionCookie({ secure: secureCookie })]);
+      return;
+    }
+
+    sendHtml(res, 200, renderAdminLoginPage({ errorMessage: "Feil brukernavn eller passord." }));
+    return;
   }
 
-  let decoded = "";
-  try {
-    decoded = Buffer.from(match[1], "base64").toString("utf8");
-  } catch {
-    return false;
+  if (!isAdminAuthorized(req)) {
+    sendHtml(res, 200, renderAdminLoginPage());
+    return;
   }
 
-  const separatorIndex = decoded.indexOf(":");
-  if (separatorIndex === -1) {
-    return false;
-  }
-
-  const username = decoded.slice(0, separatorIndex);
-  const password = decoded.slice(separatorIndex + 1);
-
-  return safeEqual(username, ADMIN_USERNAME) && safeEqual(password, ADMIN_PASSWORD);
+  return serveStatic("/admin", res);
 }
 
-function hasAdminCredentials() {
-  return Boolean(ADMIN_USERNAME && ADMIN_PASSWORD);
-}
-
-function safeEqual(left, right) {
-  const leftBuffer = Buffer.from(String(left));
-  const rightBuffer = Buffer.from(String(right));
-
-  if (leftBuffer.length !== rightBuffer.length) {
-    return false;
-  }
-
-  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
-}
-
-function requestAdminAuth(res) {
-  res.writeHead(401, {
-    ...NO_STORE_HEADERS,
-    "WWW-Authenticate": 'Basic realm="Oslo Paintball Admin"',
-    "Content-Type": "text/plain; charset=utf-8"
-  });
-  res.end("Admin login kreves.");
+function isSecureRequest(req) {
+  return req.headers["x-forwarded-proto"] === "https";
 }
 
 function isPastDate(value) {
@@ -836,6 +829,45 @@ function sendJson(res, statusCode, payload) {
     "Content-Type": "application/json; charset=utf-8"
   });
   res.end(JSON.stringify(payload));
+}
+
+function sendHtml(res, statusCode, html) {
+  res.writeHead(statusCode, {
+    ...NO_STORE_HEADERS,
+    "Content-Type": "text/html; charset=utf-8"
+  });
+  res.end(html);
+}
+
+function sendRedirect(res, location, cookies = []) {
+  const headers = {
+    ...NO_STORE_HEADERS,
+    Location: location
+  };
+
+  if (cookies.length > 0) {
+    headers["Set-Cookie"] = cookies;
+  }
+
+  res.writeHead(303, headers);
+  res.end();
+}
+
+function readRawBody(req) {
+  return new Promise((resolve, reject) => {
+    let raw = "";
+
+    req.on("data", chunk => {
+      raw += chunk;
+      if (raw.length > 1_000_000) {
+        req.destroy();
+        reject(new Error("Request body too large."));
+      }
+    });
+
+    req.on("end", () => resolve(raw));
+    req.on("error", reject);
+  });
 }
 
 function readJsonBody(req) {

@@ -1,8 +1,9 @@
-const crypto = require("node:crypto");
 const { notifyBookingConfirmed, notifyNewBooking } = require("../../booking-notifications");
+const {
+  hasAdminCredentials,
+  isAdminAuthorized
+} = require("../../admin-auth");
 
-const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "";
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
 const SUPABASE_URL = normalizeSupabaseUrl(process.env.SUPABASE_URL || "");
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
@@ -391,60 +392,14 @@ function requiresAdminAuth(method, apiPath) {
     (method === "DELETE" && /^\/api\/bookings\/\d+$/.test(apiPath));
 }
 
-function isAdminAuthorized(headers) {
-  if (!hasAdminCredentials()) {
-    return false;
-  }
-
-  const header = headers.authorization || headers.Authorization || "";
-  const match = header.match(/^Basic\s+(.+)$/i);
-
-  if (!match) {
-    return false;
-  }
-
-  let decoded = "";
-  try {
-    decoded = Buffer.from(match[1], "base64").toString("utf8");
-  } catch {
-    return false;
-  }
-
-  const separatorIndex = decoded.indexOf(":");
-  if (separatorIndex === -1) {
-    return false;
-  }
-
-  const username = decoded.slice(0, separatorIndex);
-  const password = decoded.slice(separatorIndex + 1);
-
-  return safeEqual(username, ADMIN_USERNAME) && safeEqual(password, ADMIN_PASSWORD);
-}
-
-function hasAdminCredentials() {
-  return Boolean(ADMIN_USERNAME && ADMIN_PASSWORD);
-}
-
-function safeEqual(left, right) {
-  const leftBuffer = Buffer.from(String(left));
-  const rightBuffer = Buffer.from(String(right));
-
-  if (leftBuffer.length !== rightBuffer.length) {
-    return false;
-  }
-
-  return crypto.timingSafeEqual(leftBuffer, rightBuffer);
-}
-
 function adminAuthResponse() {
   return {
     statusCode: 401,
     headers: {
       ...SECURITY_HEADERS,
-      "WWW-Authenticate": 'Basic realm="Oslo Paintball Admin"',
-      "Content-Type": "text/plain; charset=utf-8"
+      "Content-Type": "application/json; charset=utf-8"
     },
-    body: "Admin login kreves."
+    body: JSON.stringify({ error: "Admin-login kreves." })
   };
 }
 
