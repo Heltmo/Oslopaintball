@@ -96,6 +96,7 @@ body {
 
 .admin-link,
 .admin-refresh,
+.admin-tab,
 .status-select {
   display: inline-flex;
   align-items: center;
@@ -138,6 +139,7 @@ body {
 
 .admin-link:hover,
 .admin-refresh:hover,
+.admin-tab:hover,
 .status-select:hover,
 .admin-row-action:hover,
 .admin-detail-actions a:hover,
@@ -160,7 +162,7 @@ body {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 12px;
 }
 
@@ -196,19 +198,22 @@ body {
   color: var(--text);
 }
 
-.summary-card:nth-child(2) strong {
+.summary-card-pending strong,
+.summary-card-event strong {
   color: var(--amber);
 }
 
-.summary-card:nth-child(3) strong {
+.summary-card-today strong,
+.summary-card-confirmed strong {
   color: var(--accent);
 }
 
-.summary-card:nth-child(4) strong {
+.summary-card-cancelled strong {
   color: var(--red);
 }
 
-.summary-card:nth-child(5) strong {
+.summary-card-upcoming strong,
+.summary-card-completed strong {
   color: var(--blue);
 }
 
@@ -230,6 +235,44 @@ body {
   margin-top: 6px;
   font-size: 26px;
   line-height: 1.2;
+}
+
+.admin-work-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.admin-tab {
+  min-height: 38px;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--surface);
+}
+
+.admin-tab span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  min-height: 22px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: var(--surface-soft);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-tab.is-active {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.admin-tab.is-active span {
+  background: var(--accent);
+  color: #fff;
 }
 
 .admin-controls {
@@ -289,6 +332,7 @@ body {
 .admin-clear-filters:focus,
 .admin-link:focus,
 .admin-refresh:focus,
+.admin-tab:focus,
 .status-select:focus,
 .admin-row-action:focus,
 .admin-detail-close:focus,
@@ -319,12 +363,6 @@ body {
   background: var(--accent-soft);
   color: var(--accent-dark);
   border: 1px solid rgba(47, 125, 50, 0.2);
-}
-
-.admin-message.preview {
-  background: var(--amber-soft);
-  color: var(--amber);
-  border: 1px solid rgba(161, 92, 0, 0.22);
 }
 
 .table-wrap {
@@ -416,6 +454,45 @@ body {
 
 .booking-meta {
   color: var(--muted);
+}
+
+.booking-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 8px;
+}
+
+.booking-tag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.booking-tag.new {
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+}
+
+.booking-tag.today {
+  background: var(--blue-soft);
+  color: var(--blue);
+}
+
+.booking-tag.attention {
+  background: var(--amber-soft);
+  color: var(--amber);
+}
+
+.booking-date {
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 800;
+  text-transform: capitalize;
 }
 
 .admin-row-action,
@@ -574,6 +651,14 @@ body {
 
 .new-row td {
   background: #f5fbf4;
+}
+
+.event-today-row td {
+  background: #f4f8ff;
+}
+
+.follow-up-row td {
+  background: #fffaf0;
 }
 
 .selected-row td {

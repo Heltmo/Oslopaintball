@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const statusFilter = document.querySelector(".admin-status-filter");
   const dateFilter = document.querySelector(".admin-date-filter");
   const clearFiltersButton = document.querySelector(".admin-clear-filters");
+  const tabButtons = Array.from(document.querySelectorAll("[data-work-view]"));
   const detailPanel = document.querySelector(".admin-detail-panel");
   const detailClose = document.querySelector(".admin-detail-close");
   const noteInput = document.querySelector(".admin-note-input");
@@ -25,15 +26,26 @@ document.addEventListener("DOMContentLoaded", () => {
   };
   const summaryTargets = {
     total: document.querySelector('[data-summary="total"]'),
+    createdToday: document.querySelector('[data-summary="createdToday"]'),
+    eventToday: document.querySelector('[data-summary="eventToday"]'),
+    upcoming: document.querySelector('[data-summary="upcoming"]'),
     pending: document.querySelector('[data-summary="pending"]'),
     confirmed: document.querySelector('[data-summary="confirmed"]'),
     cancelled: document.querySelector('[data-summary="cancelled"]'),
     completed: document.querySelector('[data-summary="completed"]')
   };
+  const viewCountTargets = {
+    all: document.querySelector('[data-view-count="all"]'),
+    pending: document.querySelector('[data-view-count="pending"]'),
+    createdToday: document.querySelector('[data-view-count="createdToday"]'),
+    eventToday: document.querySelector('[data-view-count="eventToday"]'),
+    upcoming: document.querySelector('[data-view-count="upcoming"]')
+  };
 
   let latestSeenCreatedAt = "";
   let allBookings = [];
   let selectedBookingId = null;
+  let activeWorkView = "all";
 
   const loadBookings = async options => {
     const isInitial = options?.initial === true;
@@ -41,9 +53,8 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const payload = await requestJson("api/bookings", {}, "Kunne ikke laste bookinger.");
 
-      allBookings = payload.bookings;
-      renderSummary(summaryTargets, payload.summary);
-      renderBookings(bookingsBody, getFilteredBookings(allBookings), latestSeenCreatedAt, selectedBookingId);
+      allBookings = sortBookings(payload.bookings);
+      renderDashboard();
       refreshSelectedBooking();
 
       if (payload.bookings.length) {
@@ -56,6 +67,7 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       if (isInitial && !allBookings.length) {
         renderSummary(summaryTargets, getSummary([]));
+        renderViewCounts(viewCountTargets, []);
         renderBookings(bookingsBody, [], latestSeenCreatedAt, selectedBookingId);
       }
 
@@ -82,7 +94,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (searchInput) searchInput.value = "";
     if (statusFilter) statusFilter.value = "all";
     if (dateFilter) dateFilter.value = "";
-    renderVisibleBookings();
+    activeWorkView = "all";
+    updateActiveTab(tabButtons, activeWorkView);
+    renderDashboard();
+  });
+
+  tabButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      activeWorkView = button.dataset.workView || "all";
+      updateActiveTab(tabButtons, activeWorkView);
+      renderVisibleBookings();
+    });
   });
 
   loadBookings({ initial: true });
@@ -157,8 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (detailPanel) {
         detailPanel.hidden = true;
       }
-      renderSummary(summaryTargets, getSummary(allBookings));
-      renderVisibleBookings();
+      renderDashboard();
       showMessage(messageBox, `Booking ${label} er slettet.`, "success");
     } catch (error) {
       showMessage(messageBox, error.message, "error");
@@ -197,6 +218,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const date = dateFilter?.value || "";
 
     return bookings.filter(booking => {
+      const matchesWorkView = bookingMatchesWorkView(booking, activeWorkView);
       const matchesStatus = status === "all" || booking.status === status;
       const matchesDate = !date || booking.preferred_date === date;
       const searchable = [
@@ -211,8 +233,14 @@ document.addEventListener("DOMContentLoaded", () => {
         .join(" ")
         .toLowerCase();
 
-      return matchesStatus && matchesDate && (!query || searchable.includes(query));
+      return matchesWorkView && matchesStatus && matchesDate && (!query || searchable.includes(query));
     });
+  }
+
+  function renderDashboard() {
+    renderSummary(summaryTargets, getSummary(allBookings));
+    renderViewCounts(viewCountTargets, allBookings);
+    renderVisibleBookings();
   }
 
   function renderVisibleBookings() {
@@ -235,8 +263,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       updateBookingInState(payload.booking);
       refreshSelectedBooking();
-      renderVisibleBookings();
-      renderSummary(summaryTargets, getSummary(allBookings));
+      renderDashboard();
       showMessage(messageBox, `Booking #${bookingId} er oppdatert til ${nextStatus}.`, "success");
     } catch (error) {
       showMessage(messageBox, error.message, "error");
@@ -245,7 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateBookingInState(updatedBooking) {
-    allBookings = allBookings.map(booking => (booking.id === updatedBooking.id ? updatedBooking : booking));
+    allBookings = sortBookings(allBookings.map(booking => (booking.id === updatedBooking.id ? updatedBooking : booking)));
   }
 
   function openBookingDetail(booking) {
@@ -283,11 +310,38 @@ function renderSummary(targets, summary) {
 function getSummary(bookings) {
   return {
     total: bookings.length,
+    createdToday: bookings.filter(isCreatedToday).length,
+    eventToday: bookings.filter(isEventToday).length,
+    upcoming: bookings.filter(isUpcomingBooking).length,
     pending: bookings.filter(booking => booking.status === "pending").length,
     confirmed: bookings.filter(booking => booking.status === "confirmed").length,
     cancelled: bookings.filter(booking => booking.status === "cancelled").length,
     completed: bookings.filter(booking => booking.status === "completed").length
   };
+}
+
+function renderViewCounts(targets, bookings) {
+  const counts = {
+    all: bookings.length,
+    pending: bookings.filter(booking => bookingMatchesWorkView(booking, "pending")).length,
+    createdToday: bookings.filter(booking => bookingMatchesWorkView(booking, "createdToday")).length,
+    eventToday: bookings.filter(booking => bookingMatchesWorkView(booking, "eventToday")).length,
+    upcoming: bookings.filter(booking => bookingMatchesWorkView(booking, "upcoming")).length
+  };
+
+  Object.entries(targets).forEach(([key, element]) => {
+    if (element) {
+      element.textContent = String(counts[key] ?? 0);
+    }
+  });
+}
+
+function updateActiveTab(buttons, activeView) {
+  buttons.forEach(button => {
+    const isActive = button.dataset.workView === activeView;
+    button.classList.toggle("is-active", isActive);
+    button.setAttribute("aria-selected", String(isActive));
+  });
 }
 
 function renderBookingDetail(booking, targets, noteInput) {
@@ -298,7 +352,7 @@ function renderBookingDetail(booking, targets, noteInput) {
   setElementText(targets.customer, booking.name);
   setElementText(targets.contact, `${booking.phone} · ${booking.email}`);
   setElementText(targets.package, booking.package);
-  setElementText(targets.datetime, `${booking.preferred_date} kl. ${booking.preferred_time}`);
+  setElementText(targets.datetime, formatBookingDateTime(booking));
   setElementText(targets.group, `${booking.group_size} personer`);
   setElementText(targets.extras, extras);
   setElementText(targets.notes, notes);
@@ -340,20 +394,31 @@ function renderBookings(container, bookings, latestSeenCreatedAt, selectedBookin
     .map(booking => {
       const extras = booking.extras.length ? booking.extras.join(", ") : "Ingen tillegg";
       const notes = booking.notes || "Ingen notater";
-      const isNew = latestSeenCreatedAt && booking.created_at > latestSeenCreatedAt;
+      const isNew = isCreatedToday(booking) || (latestSeenCreatedAt && booking.created_at > latestSeenCreatedAt);
       const isSelected = selectedBookingId === booking.id;
+      const rowFlags = getBookingFlags(booking);
+      const rowClasses = [
+        isNew ? "new-row" : "",
+        isSelected ? "selected-row" : "",
+        isEventToday(booking) ? "event-today-row" : "",
+        needsFollowUp(booking) ? "follow-up-row" : ""
+      ].filter(Boolean).join(" ");
 
       return `
-        <tr class="${isNew ? "new-row" : ""} ${isSelected ? "selected-row" : ""}">
+        <tr class="${rowClasses}">
           <td>#${booking.id}</td>
           <td>
             <strong>${escapeHtml(booking.name)}</strong><br />
             <span class="booking-meta">${escapeHtml(booking.phone)}</span><br />
             <span class="booking-meta">${escapeHtml(booking.email)}</span>
+            ${renderBookingTags(rowFlags)}
           </td>
           <td>${escapeHtml(booking.package)}</td>
           <td>${booking.group_size} pers</td>
-          <td>${escapeHtml(booking.preferred_date)}<br /><span class="booking-meta">${escapeHtml(booking.preferred_time)}</span></td>
+          <td>
+            <strong class="booking-date">${escapeHtml(formatBookingDate(booking.preferred_date))}</strong><br />
+            <span class="booking-meta">kl. ${escapeHtml(booking.preferred_time)}</span>
+          </td>
           <td>${escapeHtml(extras)}</td>
           <td>
             <span class="status-chip ${escapeHtml(booking.status)}">${escapeHtml(statusLabel(booking.status))}</span>
@@ -376,6 +441,18 @@ function renderBookings(container, bookings, latestSeenCreatedAt, selectedBookin
     .join("");
 }
 
+function renderBookingTags(flags) {
+  if (!flags.length) {
+    return "";
+  }
+
+  return `
+    <div class="booking-tags">
+      ${flags.map(flag => `<span class="booking-tag ${escapeHtml(flag.type)}">${escapeHtml(flag.label)}</span>`).join("")}
+    </div>
+  `;
+}
+
 function renderStatusOptions(currentStatus) {
   const statuses = ["pending", "confirmed", "cancelled", "completed"];
 
@@ -393,6 +470,79 @@ function statusLabel(status) {
   };
 
   return labels[status] || status;
+}
+
+function getBookingFlags(booking) {
+  const flags = [];
+
+  if (isCreatedToday(booking)) {
+    flags.push({ type: "new", label: "NY" });
+  }
+
+  if (isEventToday(booking)) {
+    flags.push({ type: "today", label: "I dag" });
+  }
+
+  if (needsFollowUp(booking)) {
+    flags.push({ type: "attention", label: "Oppfølging" });
+  }
+
+  return flags;
+}
+
+function bookingMatchesWorkView(booking, workView) {
+  if (workView === "pending") {
+    return booking.status === "pending";
+  }
+
+  if (workView === "createdToday") {
+    return isCreatedToday(booking);
+  }
+
+  if (workView === "eventToday") {
+    return isEventToday(booking);
+  }
+
+  if (workView === "upcoming") {
+    return isUpcomingBooking(booking);
+  }
+
+  return true;
+}
+
+function isCreatedToday(booking) {
+  return toOsloDateIso(booking.created_at) === getTodayIsoOslo();
+}
+
+function isEventToday(booking) {
+  return booking.preferred_date === getTodayIsoOslo();
+}
+
+function isUpcomingBooking(booking) {
+  return booking.preferred_date > getTodayIsoOslo() && !["cancelled", "completed"].includes(booking.status);
+}
+
+function needsFollowUp(booking) {
+  if (booking.status !== "pending") {
+    return false;
+  }
+
+  const createdAt = new Date(booking.created_at).getTime();
+  return Number.isFinite(createdAt) && Date.now() - createdAt > 24 * 60 * 60 * 1000;
+}
+
+function sortBookings(bookings) {
+  return [...bookings].sort((left, right) => {
+    const leftCreated = new Date(left.created_at).getTime();
+    const rightCreated = new Date(right.created_at).getTime();
+    const createdDiff = (Number.isFinite(rightCreated) ? rightCreated : 0) - (Number.isFinite(leftCreated) ? leftCreated : 0);
+
+    if (createdDiff !== 0) {
+      return createdDiff;
+    }
+
+    return Number(right.id || 0) - Number(left.id || 0);
+  });
 }
 
 function showMessage(element, text, type) {
@@ -453,6 +603,51 @@ function formatDateTime(value) {
     hour: "2-digit",
     minute: "2-digit"
   });
+}
+
+function formatBookingDateTime(booking) {
+  return `${formatBookingDate(booking.preferred_date)} kl. ${booking.preferred_time}`;
+}
+
+function formatBookingDate(value) {
+  const [year, month, day] = String(value || "").split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+
+  if (!year || !month || !day || Number.isNaN(date.getTime())) {
+    return value || "Ukjent dato";
+  }
+
+  return date.toLocaleDateString("no-NO", {
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "UTC"
+  });
+}
+
+function toOsloDateIso(value) {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Oslo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(date);
+}
+
+function getTodayIsoOslo() {
+  return new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "Europe/Oslo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  }).format(new Date());
 }
 
 function escapeHtml(value) {

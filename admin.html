@@ -25,23 +25,35 @@
 
     <main class="admin-main">
       <section class="summary-grid">
-        <article class="summary-card">
-          <span>Totalt</span>
-          <strong data-summary="total">0</strong>
+        <article class="summary-card summary-card-today">
+          <span>Nye i dag</span>
+          <strong data-summary="createdToday">0</strong>
         </article>
-        <article class="summary-card">
+        <article class="summary-card summary-card-pending">
           <span>Venter</span>
           <strong data-summary="pending">0</strong>
         </article>
-        <article class="summary-card">
+        <article class="summary-card summary-card-event">
+          <span>Arrangementer i dag</span>
+          <strong data-summary="eventToday">0</strong>
+        </article>
+        <article class="summary-card summary-card-upcoming">
+          <span>Kommende</span>
+          <strong data-summary="upcoming">0</strong>
+        </article>
+        <article class="summary-card summary-card-confirmed">
           <span>Bekreftet</span>
           <strong data-summary="confirmed">0</strong>
         </article>
-        <article class="summary-card">
+        <article class="summary-card summary-card-total">
+          <span>Totalt</span>
+          <strong data-summary="total">0</strong>
+        </article>
+        <article class="summary-card summary-card-cancelled">
           <span>Avlyst</span>
           <strong data-summary="cancelled">0</strong>
         </article>
-        <article class="summary-card">
+        <article class="summary-card summary-card-completed">
           <span>Fullført</span>
           <strong data-summary="completed">0</strong>
         </article>
@@ -54,6 +66,24 @@
             <h2>Alle bookinger</h2>
           </div>
           <div class="admin-status-note">Automatisk oppdatert hvert 15. sekund.</div>
+        </div>
+
+        <div class="admin-work-tabs" role="tablist" aria-label="Velg bookingvisning">
+          <button type="button" class="admin-tab is-active" data-work-view="all" aria-selected="true">
+            Alle <span data-view-count="all">0</span>
+          </button>
+          <button type="button" class="admin-tab" data-work-view="pending" aria-selected="false">
+            Venter <span data-view-count="pending">0</span>
+          </button>
+          <button type="button" class="admin-tab" data-work-view="createdToday" aria-selected="false">
+            Nye i dag <span data-view-count="createdToday">0</span>
+          </button>
+          <button type="button" class="admin-tab" data-work-view="eventToday" aria-selected="false">
+            I dag <span data-view-count="eventToday">0</span>
+          </button>
+          <button type="button" class="admin-tab" data-work-view="upcoming" aria-selected="false">
+            Kommende <span data-view-count="upcoming">0</span>
+          </button>
         </div>
 
         <div class="admin-controls" aria-label="Filtrer bookinger">
