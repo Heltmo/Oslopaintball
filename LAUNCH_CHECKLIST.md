@@ -1,11 +1,11 @@
 # Oslo Paintball Launch Checklist
 
-## Venter på Kenneth
+## Status etter siste mail
 
 - [ ] Faktura 10 000 kr betalt
-- [ ] E-postadresse som skal motta bookingvarsler
-- [ ] Telefonnummer som skal motta SMS-varsler
-- [ ] Ønsket admin-brukernavn
+- [x] Bookingvarsler sendes til `booking@oslopaintball.no`
+- [x] SMS-varsler deaktiveres foreløpig
+- [x] Admin-brukernavn: `Oslopaintball`
 - [ ] Bilder/logo hvis de har noe mer enn dagens nettside
 - [ ] Bekreft endelige pakker, priser, åpningstider og kontaktinfo
 - [ ] Avklar driftsavtale etter lansering
@@ -16,28 +16,28 @@
 - [ ] Supabase project opprettet
 - [ ] supabase/schema.sql kjørt i Supabase SQL Editor
 - [ ] Resend domene/avsender verifisert
-- [ ] Twilio SMS satt opp
+- [ ] Twilio SMS satt opp hvis SMS-varsler aktiveres senere
 
 ## Netlify Environment Variables
 
 - [ ] SUPABASE_URL
 - [ ] SUPABASE_SERVICE_ROLE_KEY
-- [ ] ADMIN_USERNAME
-- [ ] ADMIN_PASSWORD
-- [ ] PUBLIC_SITE_URL
+- [ ] ADMIN_USERNAME=`Oslopaintball`
+- [ ] ADMIN_PASSWORD midlertidig satt for test og byttes før lansering
+- [ ] PUBLIC_SITE_URL=`https://oslopaintball.netlify.app` for Netlify-test, `https://oslopaintball.no` etter DNS
 - [ ] BOOKING_BUSINESS_NAME=Oslo Paintball
 - [ ] BOOKING_LOCATION=Oslo Paintball, Stuaveien, 1480 Slattum
 - [ ] BOOKING_EVENT_DURATION_MINUTES=120
 - [ ] BOOKING_SLOT_CAPACITY=2
 - [ ] BOOKING_EXTRA_OPEN_DATES hvis hverdager/spesialdatoer skal åpnes
 - [ ] RESEND_API_KEY
-- [ ] BOOKING_FROM_EMAIL
-- [ ] BOOKING_REPLY_TO_EMAIL
-- [ ] ADMIN_NOTIFY_EMAIL
-- [ ] TWILIO_ACCOUNT_SID
-- [ ] TWILIO_AUTH_TOKEN
-- [ ] TWILIO_FROM_NUMBER
-- [ ] ADMIN_NOTIFY_PHONE
+- [ ] BOOKING_FROM_EMAIL=`Oslo Paintball <booking@oslopaintball.no>`
+- [ ] BOOKING_REPLY_TO_EMAIL=`booking@oslopaintball.no`
+- [ ] ADMIN_NOTIFY_EMAIL=`booking@oslopaintball.no`
+- [ ] TWILIO_ACCOUNT_SID tom/deaktivert foreløpig
+- [ ] TWILIO_AUTH_TOKEN tom/deaktivert foreløpig
+- [ ] TWILIO_FROM_NUMBER tom/deaktivert foreløpig
+- [ ] ADMIN_NOTIFY_PHONE tom/deaktivert foreløpig
 
 ## Test Før Domene Pekes Om
 
@@ -51,8 +51,8 @@
 - [ ] Booking kan bekreftes
 - [ ] Kunde mottar bekreftelsesmail
 - [ ] Kalenderlenke i bekreftelsesmail åpner riktig event
-- [ ] Kunde mottar SMS
-- [ ] Admin mottar varsel
+- [ ] Admin mottar e-postvarsel på `booking@oslopaintball.no`
+- [ ] SMS sendes ikke når Twilio-variablene er tomme
 - [ ] Mobilvisning sjekket
 
 ## DNS / Domene

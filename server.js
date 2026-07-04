@@ -17,7 +17,6 @@ const USE_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY);
 const IS_LOCAL_DEV = !USE_SUPABASE && process.env.NODE_ENV !== "production";
 const ADMIN_USERNAME = process.env.ADMIN_USERNAME || (IS_LOCAL_DEV ? "admin" : "");
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || (IS_LOCAL_DEV ? "paintball2026" : "");
-const DEMO_MODE = !USE_SUPABASE && process.env.DEMO_MODE !== "0";
 const VALID_STATUSES = ["pending", "confirmed", "cancelled", "completed"];
 const BOOKING_GROUP_MIN = 10;
 const BOOKING_GROUP_MAX = 100;
@@ -209,20 +208,6 @@ const server = http.createServer(async (req, res) => {
       });
     }
 
-    if (req.method === "POST" && requestUrl.pathname === "/api/demo/seed") {
-      if (!DEMO_MODE) {
-        return sendJson(res, 404, { error: "Demo-data er ikke aktivert for denne serveren." });
-      }
-
-      const result = await seedDemoBookings();
-
-      return sendJson(res, 200, {
-        message: "Demo-data er lastet inn.",
-        ...result,
-        ...(await getBookingsPayload())
-      });
-    }
-
     if (req.method === "GET") {
       return serveStatic(requestUrl.pathname, res);
     }
@@ -237,7 +222,6 @@ const server = http.createServer(async (req, res) => {
 server.listen(PORT, () => {
   console.log(`Oslo Paintball V1 server running on http://localhost:${PORT}`);
   console.log(`Booking storage: ${USE_SUPABASE ? "Supabase" : "SQLite"}`);
-  console.log(`Demo mode: ${DEMO_MODE ? "enabled" : "disabled"}`);
 });
 
 async function insertBooking(booking, createdAt) {
@@ -440,149 +424,6 @@ async function isConfirmedSlotFull(preferredDate, preferredTime, excludedBooking
     .get(preferredDate, preferredTime, excludedBookingId);
 
   return Number(row?.count || 0) >= BOOKING_SLOT_CAPACITY;
-}
-
-async function seedDemoBookings() {
-  if (USE_SUPABASE || !db) {
-    return { inserted: 0, deleted: 0 };
-  }
-
-  const deleted = db.prepare("DELETE FROM bookings WHERE email LIKE ?").run("%@demo.oslopaintball.no");
-  const demoBookings = getDemoBookings();
-
-  const insertDemoBooking = db.prepare(`
-    INSERT INTO bookings (
-      name,
-      phone,
-      email,
-      "package",
-      group_size,
-      preferred_date,
-      preferred_time,
-      extras,
-      notes,
-      admin_notes,
-      status,
-      created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-
-  for (const booking of demoBookings) {
-    insertDemoBooking.run(
-      booking.name,
-      booking.phone,
-      booking.email,
-      booking.package,
-      booking.group_size,
-      booking.preferred_date,
-      booking.preferred_time,
-      JSON.stringify(booking.extras),
-      booking.notes,
-      booking.admin_notes,
-      booking.privacy_consent ? 1 : 0,
-      booking.privacy_consent_at || booking.created_at,
-      booking.status,
-      booking.created_at
-    );
-  }
-
-  return {
-    inserted: demoBookings.length,
-    deleted: deleted.changes || 0
-  };
-}
-
-function getDemoBookings() {
-  const now = Date.now();
-
-  return [
-    {
-      name: "Kari Hansen",
-      phone: "920 47 177",
-      email: "kari.hansen@demo.oslopaintball.no",
-      package: "Over 18 år",
-      group_size: 14,
-      preferred_date: addDaysIso(7),
-      preferred_time: "12:00",
-      extras: ["Ekstra 200 baller"],
-      notes: "Bedriftsgruppe som ønsker en enkel kickoff. Ring helst mellom 10 og 14.",
-      admin_notes: "Demo: ring kunden, bekreft antall og spør om faktura.",
-      privacy_consent: true,
-      privacy_consent_at: new Date(now - 18 * 60 * 1000).toISOString(),
-      status: "pending",
-      created_at: new Date(now - 18 * 60 * 1000).toISOString()
-    },
-    {
-      name: "Marius Solberg",
-      phone: "944 44 444",
-      email: "marius.solberg@demo.oslopaintball.no",
-      package: "Under 18 år",
-      group_size: 12,
-      preferred_date: addDaysIso(10),
-      preferred_time: "14:00",
-      extras: ["Engangsdress"],
-      notes: "Bursdag for 13-åringer. Foreldre blir med som tilskuere.",
-      admin_notes: "Demo: allerede bekreftet. Husk ekstra sikkerhetsgjennomgang.",
-      privacy_consent: true,
-      privacy_consent_at: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
-      status: "confirmed",
-      created_at: new Date(now - 2 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      name: "Nora Bakken",
-      phone: "988 88 888",
-      email: "nora.bakken@demo.oslopaintball.no",
-      package: "Turnering / stor gruppe",
-      group_size: 42,
-      preferred_date: addDaysIso(14),
-      preferred_time: "16:00",
-      extras: ["Ekstra 200 baller"],
-      notes: "Ønsker turneringsoppsett med finale og laginndeling.",
-      admin_notes: "Demo: sjekk bemanning før bekreftelse.",
-      privacy_consent: true,
-      privacy_consent_at: new Date(now - 5 * 60 * 60 * 1000).toISOString(),
-      status: "pending",
-      created_at: new Date(now - 5 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      name: "Anders Moen",
-      phone: "977 77 777",
-      email: "anders.moen@demo.oslopaintball.no",
-      package: "Over 18 år",
-      group_size: 18,
-      preferred_date: addDaysIso(18),
-      preferred_time: "10:00",
-      extras: [],
-      notes: "Utdrikningslag. Ønsker rask avklaring på om tidspunktet passer.",
-      admin_notes: "Demo: kunden avlyste per telefon.",
-      privacy_consent: true,
-      privacy_consent_at: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
-      status: "cancelled",
-      created_at: new Date(now - 24 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      name: "Elin Nilsen",
-      phone: "966 66 666",
-      email: "elin.nilsen@demo.oslopaintball.no",
-      package: "Under 18 år",
-      group_size: 16,
-      preferred_date: addDaysIso(21),
-      preferred_time: "18:00",
-      extras: ["Ekstra 200 baller", "Engangsdress"],
-      notes: "Skolegruppe som ønsker et rolig opplegg med tydelig instruktør.",
-      admin_notes: "Demo: fullført demo-case for å vise historikk.",
-      privacy_consent: true,
-      privacy_consent_at: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      status: "completed",
-      created_at: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString()
-    }
-  ];
-}
-
-function addDaysIso(days) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
 }
 
 async function getBookingsPayload() {
@@ -811,10 +652,6 @@ function requiresAdminAuth(method, requestPath) {
   }
 
   if (method === "GET" && requestPath === "/api/bookings") {
-    return true;
-  }
-
-  if (method === "POST" && requestPath === "/api/demo/seed") {
     return true;
   }
 

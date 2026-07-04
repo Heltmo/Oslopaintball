@@ -34,7 +34,6 @@ document.addEventListener("DOMContentLoaded", () => {
   let latestSeenCreatedAt = "";
   let allBookings = [];
   let selectedBookingId = null;
-  let isPreviewMode = false;
 
   const loadBookings = async options => {
     const isInitial = options?.initial === true;
@@ -42,7 +41,6 @@ document.addEventListener("DOMContentLoaded", () => {
     try {
       const payload = await requestJson("api/bookings", {}, "Kunne ikke laste bookinger.");
 
-      isPreviewMode = false;
       allBookings = payload.bookings;
       renderSummary(summaryTargets, payload.summary);
       renderBookings(bookingsBody, getFilteredBookings(allBookings), latestSeenCreatedAt, selectedBookingId);
@@ -56,14 +54,9 @@ document.addEventListener("DOMContentLoaded", () => {
         showMessage(messageBox, "Adminoversikten er oppdatert.", "success");
       }
     } catch (error) {
-      if (shouldUseAdminPreviewData(error)) {
-        isPreviewMode = true;
-        allBookings = getAdminPreviewBookings();
-        renderSummary(summaryTargets, getSummary(allBookings));
-        renderBookings(bookingsBody, getFilteredBookings(allBookings), latestSeenCreatedAt, selectedBookingId);
-        refreshSelectedBooking();
-        showMessage(messageBox, "Preview-modus: viser dummy-data fordi Supabase ikke er koblet til ennå.", "preview");
-        return;
+      if (isInitial && !allBookings.length) {
+        renderSummary(summaryTargets, getSummary([]));
+        renderBookings(bookingsBody, [], latestSeenCreatedAt, selectedBookingId);
       }
 
       showMessage(messageBox, error.message, "error");
@@ -152,18 +145,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    if (isPreviewMode) {
-      allBookings = allBookings.filter(item => item.id !== selectedBookingId);
-      selectedBookingId = null;
-      if (detailPanel) {
-        detailPanel.hidden = true;
-      }
-      renderSummary(summaryTargets, getSummary(allBookings));
-      renderVisibleBookings();
-      showMessage(messageBox, `Preview: booking ${label} er slettet.`, "preview");
-      return;
-    }
-
     try {
       await requestJson(
         `api/bookings/${selectedBookingId}`,
@@ -186,17 +167,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   saveNoteButton?.addEventListener("click", async () => {
     if (selectedBookingId == null) {
-      return;
-    }
-
-    if (isPreviewMode) {
-      const booking = allBookings.find(item => item.id === selectedBookingId);
-      if (booking) {
-        const updatedBooking = { ...booking, admin_notes: noteInput?.value || "" };
-        updateBookingInState(updatedBooking);
-        openBookingDetail(updatedBooking);
-        showMessage(messageBox, `Preview: notat for booking #${selectedBookingId} er oppdatert.`, "preview");
-      }
       return;
     }
 
@@ -250,19 +220,6 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function updateBookingStatus(bookingId, nextStatus) {
-    if (isPreviewMode) {
-      const bookingIdNumber = Number.parseInt(String(bookingId), 10);
-      const booking = allBookings.find(item => item.id === bookingIdNumber);
-      if (booking) {
-        updateBookingInState({ ...booking, status: nextStatus });
-        refreshSelectedBooking();
-        renderVisibleBookings();
-        renderSummary(summaryTargets, getSummary(allBookings));
-        showMessage(messageBox, `Preview: booking #${bookingId} er satt til ${nextStatus}.`, "preview");
-      }
-      return;
-    }
-
     try {
       const payload = await requestJson(
         `api/bookings/${bookingId}/status`,
@@ -321,98 +278,6 @@ function renderSummary(targets, summary) {
 
     element.textContent = String(summary?.[key] ?? 0);
   });
-}
-
-function shouldUseAdminPreviewData(error) {
-  return /Supabase er ikke konfigurert/i.test(error?.message || "");
-}
-
-function getAdminPreviewBookings() {
-  const now = Date.now();
-
-  return [
-    {
-      id: 1007,
-      name: "Kari Hansen",
-      phone: "920 47 177",
-      email: "kari.hansen@example.no",
-      package: "Over 18 år",
-      group_size: 14,
-      preferred_date: addDaysIso(3),
-      preferred_time: "12:00",
-      extras: ["Ekstra 200 baller"],
-      notes: "Bedriftsgruppe. Ønsker rask avklaring på om datoen passer.",
-      admin_notes: "Preview: ring kunden og avklar faktura.",
-      status: "pending",
-      created_at: new Date(now - 18 * 60 * 1000).toISOString()
-    },
-    {
-      id: 1006,
-      name: "Marius Solberg",
-      phone: "944 44 444",
-      email: "marius.solberg@example.no",
-      package: "Under 18 år",
-      group_size: 12,
-      preferred_date: addDaysIso(5),
-      preferred_time: "14:00",
-      extras: ["Engangsdress"],
-      notes: "Bursdag for ungdom. Foreldre blir med som tilskuere.",
-      admin_notes: "Preview: bekreftet tidspunkt. Husk tydelig sikkerhetsgjennomgang.",
-      status: "confirmed",
-      created_at: new Date(now - 2 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      id: 1005,
-      name: "Nora Bakken",
-      phone: "988 88 888",
-      email: "nora.bakken@example.no",
-      package: "Turnering / stor gruppe",
-      group_size: 42,
-      preferred_date: addDaysIso(8),
-      preferred_time: "16:00",
-      extras: ["Ekstra 200 baller", "Foto/video-pakke"],
-      notes: "Ønsker turneringsoppsett med laginndeling og finale.",
-      admin_notes: "Preview: sjekk bemanning før bekreftelse.",
-      status: "pending",
-      created_at: new Date(now - 5 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      id: 1004,
-      name: "Anders Moen",
-      phone: "977 77 777",
-      email: "anders.moen@example.no",
-      package: "Over 18 år",
-      group_size: 18,
-      preferred_date: addDaysIso(11),
-      preferred_time: "10:00",
-      extras: [],
-      notes: "Utdrikningslag. Hverdagsdato etter avtale.",
-      admin_notes: "Preview: kunden avlyste per telefon.",
-      status: "cancelled",
-      created_at: new Date(now - 24 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      id: 1003,
-      name: "Elin Nilsen",
-      phone: "966 66 666",
-      email: "elin.nilsen@example.no",
-      package: "Under 18 år",
-      group_size: 16,
-      preferred_date: addDaysIso(14),
-      preferred_time: "18:00",
-      extras: ["Ekstra 200 baller", "Engangsdress"],
-      notes: "Skolegruppe som ønsker rolig opplegg med tydelig instruktør.",
-      admin_notes: "Preview: fullført case for historikkvisning.",
-      status: "completed",
-      created_at: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString()
-    }
-  ];
-}
-
-function addDaysIso(days) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
 }
 
 function getSummary(bookings) {
@@ -562,7 +427,7 @@ async function requestJson(url, init, fallbackMessage) {
     }
   } else if (raw.trim().startsWith("<!DOCTYPE") || raw.trim().startsWith("<html")) {
     throw new Error(
-      "Admin-siden får HTML i stedet for API-data. Åpne løsningen via V1-serveren med `npm start`, ikke via en statisk preview eller Live Server."
+      "Admin-siden får HTML i stedet for API-data. Åpne løsningen via V1-serveren med `npm start`, ikke via en statisk visning eller Live Server."
     );
   } else {
     throw new Error(fallbackMessage);

@@ -5,7 +5,6 @@ const ADMIN_USERNAME = process.env.ADMIN_USERNAME || "";
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
 const SUPABASE_URL = normalizeSupabaseUrl(process.env.SUPABASE_URL || "");
 const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
-const DEMO_MODE = process.env.DEMO_MODE === "1";
 
 const VALID_STATUSES = ["pending", "confirmed", "cancelled", "completed"];
 const BOOKING_GROUP_MIN = 10;
@@ -166,20 +165,6 @@ exports.handler = async event => {
       });
     }
 
-    if (method === "POST" && apiPath === "/api/demo/seed") {
-      if (!DEMO_MODE) {
-        return json(404, { error: "Demo-data er ikke aktivert for denne serveren." });
-      }
-
-      const result = await seedDemoBookings();
-
-      return json(200, {
-        message: "Demo-data er lastet inn.",
-        ...result,
-        ...(await getBookingsPayload())
-      });
-    }
-
     return json(404, { error: "Fant ikke ressurs." });
   } catch (error) {
     console.error(error);
@@ -278,115 +263,6 @@ function getBookingRulesPayload() {
     slot_capacity: BOOKING_SLOT_CAPACITY,
     timezone: "Europe/Oslo"
   };
-}
-
-async function seedDemoBookings() {
-  await supabaseRequest("/rest/v1/bookings?email=like.*%40demo.oslopaintball.no", {
-    method: "DELETE",
-    headers: {
-      Prefer: "return=minimal"
-    }
-  });
-
-  const rows = await supabaseRequest("/rest/v1/bookings", {
-    method: "POST",
-    headers: {
-      Prefer: "return=representation"
-    },
-    body: JSON.stringify(getDemoBookings())
-  });
-
-  return {
-    inserted: rows.length,
-    deleted: 0
-  };
-}
-
-function getDemoBookings() {
-  const now = Date.now();
-
-  return [
-    {
-      name: "Kari Hansen",
-      phone: "920 47 177",
-      email: "kari.hansen@demo.oslopaintball.no",
-      package: "Over 18 år",
-      group_size: 14,
-      preferred_date: addDaysIso(7),
-      preferred_time: "12:00",
-      extras: ["Ekstra 200 baller"],
-      notes: "Bedriftsgruppe som ønsker en enkel kickoff. Ring helst mellom 10 og 14.",
-      admin_notes: "Demo: ring kunden, bekreft antall og spør om faktura.",
-      privacy_consent: true,
-      privacy_consent_at: new Date(now - 18 * 60 * 1000).toISOString(),
-      status: "pending",
-      created_at: new Date(now - 18 * 60 * 1000).toISOString()
-    },
-    {
-      name: "Marius Solberg",
-      phone: "944 44 444",
-      email: "marius.solberg@demo.oslopaintball.no",
-      package: "Under 18 år",
-      group_size: 12,
-      preferred_date: addDaysIso(10),
-      preferred_time: "14:00",
-      extras: ["Engangsdress"],
-      notes: "Bursdag for 13-åringer. Foreldre blir med som tilskuere.",
-      admin_notes: "Demo: allerede bekreftet. Husk ekstra sikkerhetsgjennomgang.",
-      privacy_consent: true,
-      privacy_consent_at: new Date(now - 2 * 60 * 60 * 1000).toISOString(),
-      status: "confirmed",
-      created_at: new Date(now - 2 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      name: "Nora Bakken",
-      phone: "988 88 888",
-      email: "nora.bakken@demo.oslopaintball.no",
-      package: "Turnering / stor gruppe",
-      group_size: 42,
-      preferred_date: addDaysIso(14),
-      preferred_time: "16:00",
-      extras: ["Ekstra 200 baller"],
-      notes: "Ønsker turneringsoppsett med finale og laginndeling.",
-      admin_notes: "Demo: sjekk bemanning før bekreftelse.",
-      privacy_consent: true,
-      privacy_consent_at: new Date(now - 5 * 60 * 60 * 1000).toISOString(),
-      status: "pending",
-      created_at: new Date(now - 5 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      name: "Anders Moen",
-      phone: "977 77 777",
-      email: "anders.moen@demo.oslopaintball.no",
-      package: "Over 18 år",
-      group_size: 18,
-      preferred_date: addDaysIso(18),
-      preferred_time: "10:00",
-      extras: [],
-      notes: "Utdrikningslag. Ønsker rask avklaring på om tidspunktet passer.",
-      admin_notes: "Demo: kunden avlyste per telefon.",
-      privacy_consent: true,
-      privacy_consent_at: new Date(now - 24 * 60 * 60 * 1000).toISOString(),
-      status: "cancelled",
-      created_at: new Date(now - 24 * 60 * 60 * 1000).toISOString()
-    },
-    {
-      name: "Elin Nilsen",
-      phone: "966 66 666",
-      email: "elin.nilsen@demo.oslopaintball.no",
-      package: "Under 18 år",
-      group_size: 16,
-      preferred_date: addDaysIso(21),
-      preferred_time: "18:00",
-      extras: ["Ekstra 200 baller", "Engangsdress"],
-      notes: "Skolegruppe som ønsker et rolig opplegg med tydelig instruktør.",
-      admin_notes: "Demo: fullført demo-case for å vise historikk.",
-      privacy_consent: true,
-      privacy_consent_at: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      status: "completed",
-      created_at: new Date(now - 3 * 24 * 60 * 60 * 1000).toISOString()
-    }
-  ];
 }
 
 function normalizeBookingInput(input) {
@@ -508,10 +384,6 @@ function getSupabaseHeaders(extraHeaders = {}) {
 
 function requiresAdminAuth(method, apiPath) {
   if (method === "GET" && apiPath === "/api/bookings") {
-    return true;
-  }
-
-  if (method === "POST" && apiPath === "/api/demo/seed") {
     return true;
   }
 
@@ -693,8 +565,3 @@ function parseDateList(value) {
   );
 }
 
-function addDaysIso(days) {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
-}

@@ -64,9 +64,9 @@ Miljøvariabler for database/admin:
 ```env
 SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-ADMIN_USERNAME=admin
+ADMIN_USERNAME=Oslopaintball
 ADMIN_PASSWORD=et-sterkt-passord
-PUBLIC_SITE_URL=https://kundedomenet.no
+PUBLIC_SITE_URL=https://oslopaintball.netlify.app
 BOOKING_BUSINESS_NAME=Oslo Paintball
 BOOKING_LOCATION=Oslo Paintball, Stuaveien, 1480 Slattum
 BOOKING_EVENT_DURATION_MINUTES=120
@@ -75,6 +75,8 @@ BOOKING_EXTRA_OPEN_DATES=
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` skal kun ligge server-side i Netlify/local env. Den skal aldri inn i frontend.
+
+For Netlify-test kan `PUBLIC_SITE_URL` peke til `https://oslopaintball.netlify.app`. Når domenet pekes om, settes den til `https://oslopaintball.no`. Midlertidig passord skal byttes før overtakelse og lansering.
 
 ## E-postvarsling
 
@@ -106,6 +108,8 @@ TWILIO_AUTH_TOKEN=xxx
 TWILIO_FROM_NUMBER=+47xxxxxxxx
 ADMIN_NOTIFY_PHONE=+47xxxxxxxx
 ```
+
+SMS-varsler er deaktivert så lenge Twilio-variablene står tomme.
 
 Når SMS er konfigurert:
 
@@ -171,12 +175,6 @@ Gyldige statuser:
 4. Admin setter booking til `confirmed`, `cancelled` eller `completed`.
 5. Når status settes til `confirmed`, sendes bekreftelse til kunden hvis e-post/SMS er konfigurert.
 
-## Demo lokalt
+## Lokal database
 
-Når Supabase ikke er konfigurert, bruker lokal server `data/bookings.db`. Demo-seeding finnes fortsatt via API-et når `DEMO_MODE` er aktivert, men er ikke en del av kundens produksjonsflyt.
-
-```bash
-curl -u admin:paintball2026 -X POST http://localhost:3000/api/demo/seed
-```
-
-Sett `DEMO_MODE=0` for å deaktivere demo-seeding lokalt.
+Når Supabase ikke er konfigurert, bruker lokal server `data/bookings.db`. Testbookinger legges inn gjennom vanlig bookingskjema og slettes fra adminpanelet.
