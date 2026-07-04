@@ -2641,6 +2641,100 @@ img {
   }
 }
 
+
+/* Mobile usability polish */
+@media (max-width: 768px) {
+  .mobile-book-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .mobile-book-link {
+    min-width: 0;
+    min-height: 46px;
+    padding-left: 10px;
+    padding-right: 10px;
+    text-align: center;
+    white-space: normal;
+  }
+
+  .booking-page .mobile-book-bar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .booking-calendar {
+    padding: 10px;
+  }
+
+  .calendar-weekdays,
+  .calendar-grid {
+    gap: 4px;
+  }
+
+  .calendar-day {
+    min-height: 44px;
+    padding: 5px 2px;
+  }
+
+  .calendar-day small {
+    display: none;
+  }
+
+  .package-modal-dialog {
+    max-height: calc(100svh - 32px);
+    overflow-y: auto;
+  }
+
+  .package-modal-image {
+    max-height: 240px;
+  }
+
+  .contact-panel-meta-item span,
+  .site-footer p {
+    overflow-wrap: anywhere;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding-bottom: 92px;
+  }
+
+  .nav-cta {
+    padding: 10px 12px;
+  }
+
+  .calendar-head {
+    grid-template-columns: 34px 1fr 34px;
+  }
+
+  .calendar-head strong {
+    font-size: 17px;
+  }
+
+  .calendar-nav {
+    width: 34px;
+    height: 34px;
+  }
+
+  .calendar-weekdays {
+    font-size: 10px;
+  }
+
+  .calendar-day {
+    min-height: 40px;
+    font-size: 13px;
+  }
+
+  .booking-page-point span,
+  .field-hint,
+  .calendar-legend,
+  .summary-row,
+  .form-note {
+    font-size: 13px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;

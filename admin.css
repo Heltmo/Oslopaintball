@@ -722,3 +722,137 @@ body {
     width: 100%;
   }
 }
+
+
+/* Mobile admin layout */
+@media (max-width: 760px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summary-card {
+    min-height: 98px;
+    padding: 14px;
+  }
+
+  .summary-card strong {
+    font-size: 30px;
+  }
+
+  .admin-work-tabs {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-tab {
+    width: 100%;
+  }
+
+  .table-wrap {
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  .bookings-table {
+    min-width: 0;
+    border-spacing: 0 12px;
+  }
+
+  .bookings-table thead {
+    display: none;
+  }
+
+  .bookings-table,
+  .bookings-table tbody,
+  .bookings-table tr,
+  .bookings-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .bookings-table tbody tr {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--surface);
+    box-shadow: 0 10px 28px rgba(24, 42, 23, 0.07);
+  }
+
+  .bookings-table td {
+    display: grid;
+    grid-template-columns: minmax(92px, 0.42fr) minmax(0, 1fr);
+    gap: 10px;
+    align-items: start;
+    padding: 11px 12px;
+    border-top: 1px solid var(--line);
+    overflow-wrap: anywhere;
+  }
+
+  .bookings-table td:first-child {
+    border-top: 0;
+  }
+
+  .bookings-table td::before {
+    color: var(--muted);
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+
+  .bookings-table td:nth-child(1)::before { content: "ID"; }
+  .bookings-table td:nth-child(2)::before { content: "Kunde"; }
+  .bookings-table td:nth-child(3)::before { content: "Pakke"; }
+  .bookings-table td:nth-child(4)::before { content: "Gruppe"; }
+  .bookings-table td:nth-child(5)::before { content: "Tidspunkt"; }
+  .bookings-table td:nth-child(6)::before { content: "Tillegg"; }
+  .bookings-table td:nth-child(7)::before { content: "Status"; }
+  .bookings-table td:nth-child(8)::before { content: "Mottatt"; }
+  .bookings-table td:nth-child(9)::before { content: "Notater"; }
+  .bookings-table td:nth-child(10)::before { content: "Handling"; }
+
+  .bookings-table .empty-state {
+    display: block;
+    text-align: center;
+  }
+
+  .bookings-table .empty-state::before {
+    content: none;
+  }
+
+  .status-select,
+  .admin-row-action {
+    width: 100%;
+  }
+
+  .admin-detail-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-detail-actions a,
+  .admin-detail-actions button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 430px) {
+  .admin-header,
+  .admin-main {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .summary-grid,
+  .admin-work-tabs,
+  .admin-detail-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .bookings-table td {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+}
+
