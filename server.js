@@ -758,7 +758,9 @@ function serveStatic(requestPath, res) {
     "/styles.css": "styles.css",
     "/script.js": "script.js",
     "/admin.css": "admin.css",
-    "/admin.js": "admin.js"
+    "/admin.js": "admin.js",
+    "/robots.txt": "robots.txt",
+    "/sitemap.xml": "sitemap.xml"
   };
 
   let filePath = routeMap[requestPath];
@@ -816,6 +818,10 @@ function getContentType(filePath) {
       return "image/webp";
     case ".svg":
       return "image/svg+xml";
+    case ".txt":
+      return "text/plain; charset=utf-8";
+    case ".xml":
+      return "application/xml; charset=utf-8";
     case ".mp4":
       return "video/mp4";
     default:

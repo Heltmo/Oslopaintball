@@ -213,7 +213,7 @@ async function sendEmail(config, email) {
 async function sendSms(config, rawTo, body) {
   const to = normalizeNorwegianPhone(rawTo);
   if (!to) {
-    throw new Error("Telefonnummer må være norsk eller E.164-formatert for SMS.");
+    throw new Error("SMS sendes kun til norske telefonnumre.");
   }
 
   const params = new URLSearchParams({
@@ -349,17 +349,10 @@ function bookingEmailHtml(config, title, paragraphs, detailsHtml) {
   `;
 }
 
+// Kun norske numre: hindrer at bookingskjemaet misbrukes til SMS-pumping mot utenlandske betalingsnumre.
 function normalizeNorwegianPhone(value) {
-  const input = String(value || "").trim();
-  if (!input) {
-    return "";
-  }
+  const digits = String(value || "").replace(/\D/g, "");
 
-  if (input.startsWith("+")) {
-    return `+${input.slice(1).replace(/\D/g, "")}`;
-  }
-
-  const digits = input.replace(/\D/g, "");
   if (digits.length === 8) {
     return `+47${digits}`;
   }
@@ -368,7 +361,7 @@ function normalizeNorwegianPhone(value) {
     return `+${digits}`;
   }
 
-  if (digits.startsWith("00") && digits.length > 4) {
+  if (digits.startsWith("0047") && digits.length === 12) {
     return `+${digits.slice(2)}`;
   }
 

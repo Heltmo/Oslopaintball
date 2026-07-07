@@ -61,6 +61,7 @@ SUPABASE_URL=https://your-project-ref.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ADMIN_USERNAME=Oslopaintball
 ADMIN_PASSWORD=
+ADMIN_SESSION_SECRET=
 PUBLIC_SITE_URL=https://oslopaintball.netlify.app
 BOOKING_BUSINESS_NAME=Oslo Paintball
 BOOKING_LOCATION=Oslo Paintball, Stuaveien, 1480 Slattum
@@ -70,6 +71,8 @@ BOOKING_EXTRA_OPEN_DATES=
 ```
 
 `SUPABASE_SERVICE_ROLE_KEY` skal kun ligge server-side i Netlify/local env. Den skal aldri inn i frontend.
+
+`ADMIN_SESSION_SECRET` er en tilfeldig lang streng (f.eks. `openssl rand -base64 32`) som brukes til å signere admin-sesjoner. Uten den brukes admin-passordet som signeringsnøkkel, noe som er svakere. Sett den alltid i produksjon.
 
 For Netlify-test kan `PUBLIC_SITE_URL` peke til `https://oslopaintball.netlify.app`. Når domenet pekes om, settes den til `https://oslopaintball.no`. Midlertidig passord skal byttes før overtakelse og lansering.
 
@@ -112,7 +115,7 @@ Når SMS er konfigurert:
 - Admin får SMS ved ny bookingforespørsel hvis `ADMIN_NOTIFY_PHONE` er satt.
 - Kunden får ny SMS når admin setter status til `confirmed`.
 
-Telefonnummer fra skjemaet normaliseres til norsk `+47` når kunden skriver 8 siffer.
+SMS sendes kun til norske numre. Telefonnummer fra skjemaet normaliseres til `+47`, og alt annet enn norske numre avvises for SMS (beskytter mot SMS-pumping mot utenlandske betalingsnumre). Booking lagres uansett – kun SMS-varselet hopper over. Sett også geo-restriksjoner i Twilio-konsollen til Norge før SMS aktiveres.
 
 ## Netlify
 

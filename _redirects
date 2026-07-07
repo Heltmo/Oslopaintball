@@ -1,5 +1,6 @@
 /api/* /.netlify/functions/api/:splat 200
 /booking /booking.html 200
+/booking/ /booking.html 200
 /admin /.netlify/functions/admin 200!
 /admin/ /.netlify/functions/admin 200!
 /admin.html /.netlify/functions/admin 200!
@@ -16,7 +17,8 @@
 /_redirects /404.html 404!
 /netlify.toml /404.html 404!
 /booking-notifications.js /404.html 404!
+/admin-auth.js /404.html 404!
 /LAUNCH_CHECKLIST.md /404.html 404!
 /KENNETH_BRUKERVEILEDNING.md /404.html 404!
 /supabase/* /404.html 404!
-/* /index.html 200
+/* /404.html 404

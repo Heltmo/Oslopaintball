@@ -24,6 +24,7 @@
 - [ ] SUPABASE_SERVICE_ROLE_KEY
 - [ ] ADMIN_USERNAME=`Oslopaintball`
 - [ ] ADMIN_PASSWORD midlertidig satt for test og byttes før lansering
+- [ ] ADMIN_SESSION_SECRET satt til tilfeldig lang streng (`openssl rand -base64 32`)
 - [ ] PUBLIC_SITE_URL=`https://oslopaintball.netlify.app` for Netlify-test, `https://oslopaintball.no` etter DNS
 - [ ] BOOKING_BUSINESS_NAME=Oslo Paintball
 - [ ] BOOKING_LOCATION=Oslo Paintball, Stuaveien, 1480 Slattum
