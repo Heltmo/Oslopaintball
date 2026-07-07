@@ -59,6 +59,7 @@
 ## DNS / Domene
 
 - [ ] Netlify domain settings klare
+- [ ] VIKTIG: `www.oslopaintball.no` må også pekes til Netlify (CNAME) med redirect www → apex. Gammelt nettsted bruker www som hovedadresse, så Google har indeksert www-URL-ene.
 - [ ] DNS-instruks sendt til Hjemmesidehuset
 - [ ] SSL aktivt etter DNS-endring
 - [ ] https://oslopaintball.no testet etter ompeking

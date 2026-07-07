@@ -1,6 +1,8 @@
 /api/* /.netlify/functions/api/:splat 200
 /booking /booking.html 200
 /booking/ /booking.html 200
+/personvern /personvern.html 200
+/personvern/ /personvern.html 200
 /admin /.netlify/functions/admin 200!
 /admin/ /.netlify/functions/admin 200!
 /admin.html /.netlify/functions/admin 200!

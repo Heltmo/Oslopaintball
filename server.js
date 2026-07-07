@@ -753,6 +753,8 @@ function serveStatic(requestPath, res) {
     "/": "index.html",
     "/booking": "booking.html",
     "/booking/": "booking.html",
+    "/personvern": "personvern.html",
+    "/personvern/": "personvern.html",
     "/admin": "admin.html",
     "/booking.html": "booking.html",
     "/styles.css": "styles.css",
